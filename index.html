@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VIP Salon Status</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f0ee;color:#1a1a1a;padding:28px;}
+h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
+.subtitle{font-size:14px;color:#888;margin-bottom:8px;}
+.top-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap;}
+.view-badge{font-size:12px;font-weight:500;padding:3px 10px;border-radius:12px;background:#FAEEDA;border:1px solid #BA7517;color:#633806;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;}
+.sync-dot.connected{background:#1D9E75;}
+.sync-txt{font-size:12px;color:#888;}
+.clock{font-size:12px;color:#aaa;margin-bottom:16px;}
+
+/* Alert */
+.alert{border-radius:12px;padding:14px 18px;margin-bottom:18px;display:none;flex-direction:column;gap:8px;}
+.alert.show{display:flex;}
+.alert-top{display:flex;align-items:flex-start;gap:10px;}
+.alert-icon{font-size:22px;flex-shrink:0;line-height:1.3;}
+.alert-text{font-size:15px;font-weight:600;line-height:1.4;}
+.alert-stores{display:flex;flex-wrap:wrap;gap:6px;padding-left:32px;}
+.store-pill{font-size:12px;font-weight:600;padding:3px 11px;border-radius:12px;}
+.alert-ot{background:#FCEBEB;border:2px solid #E24B4A;color:#791F1F;animation:flashFast .8s infinite;}
+.alert-w15{background:#FCEBEB;border:2px solid #E24B4A;color:#791F1F;animation:flashSlow 1.2s infinite;}
+.alert-w30{background:#FAEEDA;border:2px solid #BA7517;color:#633806;animation:flashMed 1.8s infinite;}
+.pill-ot,.pill-w15{background:#F7C1C1;color:#791F1F;border:1px solid #E24B4A;}
+.pill-w30{background:#FAC775;color:#633806;border:1px solid #BA7517;}
+@keyframes flashFast{0%,100%{opacity:1;}50%{opacity:.4;}}
+@keyframes flashSlow{0%,100%{opacity:1;}50%{opacity:.55;}}
+@keyframes flashMed{0%,100%{opacity:1;}50%{opacity:.6;}}
+
+/* Badges */
+.sb{font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;white-space:nowrap;}
+.sb-active{background:#E1F5EE;color:#085041;border:1px solid #0F6E56;}
+.sb-w30{background:#BA7517;color:#fff;animation:flashMed 1.8s infinite;}
+.sb-w15{background:#E24B4A;color:#fff;animation:flashSlow 1.2s infinite;}
+.sb-ot{background:#A32D2D;color:#fff;animation:flashFast .8s infinite;}
+.sb-up{background:#eee;color:#888;border:1px solid #ccc;}
+.sb-done{background:#f0f0f0;color:#bbb;border:1px solid #ddd;}
+
+.empty-notice{text-align:center;padding:60px 20px;color:#aaa;font-size:14px;}
+
+/* ── DESKTOP (≥768px) ── */
+@media(min-width:768px){
+  body{padding:36px;}
+  h1{font-size:28px;}
+  .card-view{display:none;}
+  .table-view{display:block;}
+  .grid-wrap{overflow-x:auto;border-radius:12px;border:1px solid #ccc;background:#fff;box-shadow:0 2px 16px rgba(0,0,0,.08);}
+  table{width:100%;border-collapse:collapse;min-width:1100px;table-layout:fixed;}
+  thead th{background:#2C3E6B;color:#ffffff;font-size:15px;font-weight:600;letter-spacing:.3px;padding:18px 14px;text-align:center;border-right:1px solid #3d5080;}
+  thead th:first-child{text-align:center;min-width:170px;border-right:2px solid #3d5080;font-size:14px;}
+  thead th:last-child{border-right:none;}
+  tbody tr{border-bottom:1px solid #e0e0e0;}
+  tbody tr:last-child{border-bottom:none;}
+  tbody tr:nth-child(even){background:#fafafa;}
+  tbody td{border-right:1px solid #e8e8e8;padding:8px;vertical-align:top;height:90px;}
+  tbody td:first-child{padding:8px 14px;background:#EEF1F8;text-align:center;vertical-align:middle;white-space:nowrap;border-right:2px solid #c8cfe0;width:170px;}
+  tbody td:last-child{border-right:none;}
+  .slot-label{display:flex;flex-direction:column;align-items:center;gap:5px;}
+  .slot-time{font-size:16px;font-weight:700;color:#2C3E6B;}
+  .cell{min-height:72px;height:72px;border-radius:10px;border:1.5px dashed #d0d0d0;display:flex;align-items:center;justify-content:center;}
+  .cell.filled{border:none;}
+  .cell.cell-ot{border:2px solid #E24B4A;background:#FCEBEB;animation:flashFast .8s infinite;}
+  .cell.cell-w15{border:1.5px solid #E24B4A;background:#fff0f0;animation:flashSlow 1.2s infinite;}
+  .cell.cell-w30{border:1.5px solid #BA7517;background:#fff9ee;animation:flashMed 1.8s infinite;}
+  .cell.cell-done{border:1px solid #e0e0e0;background:#f5f5f5;}
+  .assigned{padding:8px 10px;border-radius:8px;font-size:14px;font-weight:700;width:100%;text-align:center;line-height:1.4;display:flex;flex-direction:column;align-items:center;gap:3px;}
+  .ext-label{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(24,95,165,.15);color:#185FA5;}
+  .done-label{font-size:11px;font-weight:500;padding:2px 7px;border-radius:6px;background:#e0e0e0;color:#888;}
+}
+
+/* ── MOBILE (<768px) ── */
+@media(max-width:767px){
+  .table-view{display:none;}
+  .card-view{display:block;}
+  .slot-card{background:#fff;border-radius:12px;border:1px solid #ddd;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.05);}
+  .slot-card.card-ot{border:2px solid #E24B4A;animation:flashFast .8s infinite;}
+  .slot-card.card-w15{border:2px solid #E24B4A;animation:flashSlow 1.2s infinite;}
+  .slot-card.card-w30{border:2px solid #BA7517;animation:flashMed 1.8s infinite;}
+  .slot-card.card-done{border:1px solid #e0e0e0;}
+  .slot-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:#2C3E6B;}
+  .slot-time-m{font-size:15px;font-weight:700;color:#fff;}
+  .slot-rooms{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px;}
+  .room-cell{border-radius:8px;border:1.5px dashed #ddd;min-height:56px;display:flex;flex-direction:column;overflow:hidden;}
+  .room-cell.has-store{border:none;}
+  .room-cell.cell-ot{border:2px solid #E24B4A;background:#FCEBEB;animation:flashFast .8s infinite;}
+  .room-cell.cell-w15{border:1.5px solid #E24B4A;background:#fff0f0;animation:flashSlow 1.2s infinite;}
+  .room-cell.cell-w30{border:1.5px solid #BA7517;background:#fff9ee;animation:flashMed 1.8s infinite;}
+  .room-cell.cell-done{border:1px solid #e0e0e0;background:#f5f5f5;}
+  .room-lbl{font-size:10px;font-weight:600;color:#aaa;padding:4px 8px 0;letter-spacing:.3px;}
+  .store-nm{font-size:12px;font-weight:700;padding:2px 8px 4px;line-height:1.3;}
+  .ext-lbl-m{font-size:10px;font-weight:600;padding:0px 8px 5px;color:#185FA5;}
+  .done-lbl-m{font-size:10px;font-weight:500;padding:0px 8px 5px;color:#888;}
+  .room-empty{display:flex;align-items:center;justify-content:center;height:56px;color:#ddd;font-size:11px;}
+}
+</style>
+</head>
+<body>
+<h1>VIP SALON STATUS</h1>
+
+<div class="top-row">
+  <span class="view-badge">👁 觀看模式</span>
+  <span class="sync-dot" id="syncDot"></span>
+  <span class="sync-txt" id="syncStatus">連線中...</span>
+</div>
+<div class="clock" id="clock"></div>
+
+<div class="alert" id="alertBanner">
+  <div class="alert-top"><span class="alert-icon" id="alertIcon"></span><span class="alert-text" id="alertMsg"></span></div>
+  <div class="alert-stores" id="alertStores"></div>
+</div>
+
+<div class="table-view"><div class="grid-wrap"><table id="grid"></table></div></div>
+<div class="card-view" id="slotCards"></div>
+<div class="empty-notice" id="emptyNotice" style="display:none;">尚未有分配資料，請等待管理員設定。</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import{getDatabase,ref,onValue}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+const app=initializeApp({apiKey:"AIzaSyB4ywZ1LfnE8M2XT41yrCxl4_a-jYdwQn8",authDomain:"vip-room-scheduler.firebaseapp.com",databaseURL:"https://vip-room-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"vip-room-scheduler",storageBucket:"vip-room-scheduler.firebasestorage.app",messagingSenderId:"1064515548287",appId:"1:1064515548287:web:11f5ab1537cbc60371bb4a"});
+const db=getDatabase(app),dbRef=ref(db,'scheduler');
+// 偵測連線狀態
+onValue(ref(db,'.info/connected'),snap=>{
+  const connected=snap.val();
+  const dot=document.getElementById('syncDot');
+  const txt=document.getElementById('syncStatus');
+  if(connected){dot.className='sync-dot connected';txt.textContent='即時同步中';}
+  else{dot.className='sync-dot';txt.style.color='#E24B4A';txt.textContent='連線中斷，請確認網路...';}
+});
+
+const COLORS=[{bg:'#E6F1FB',border:'#185FA5',text:'#0C447C'},{bg:'#E1F5EE',border:'#0F6E56',text:'#085041'},{bg:'#FAEEDA',border:'#BA7517',text:'#633806'},{bg:'#FAECE7',border:'#993C1D',text:'#712B13'},{bg:'#EEEDFE',border:'#534AB7',text:'#3C3489'},{bg:'#FBEAF0',border:'#993556',text:'#72243E'},{bg:'#EAF3DE',border:'#3B6D11',text:'#27500A'},{bg:'#F1EFE8',border:'#5F5E5A',text:'#444441'},{bg:'#FCEBEB',border:'#A32D2D',text:'#791F1F'},{bg:'#E8F8FA',border:'#0A7C8C',text:'#055562'}];
+let SLOTS=['11:00–13:00','13:00–15:00','15:00–17:00','17:00–19:00','19:00–21:00'];
+let ROOMS=Array.from({length:9},(_,i)=>`包廂 ${i+1}`);
+let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'},{id:'tnn',name:'TN'},{id:'101',name:'TPE 101'},{id:'a3',name:'A3'},{id:'lvb',name:'LVB'},{id:'sogo',name:'SOGO'}];
+let assignments={},extensions={},returned={};
+const color=id=>COLORS[STORES.findIndex(s=>s.id===id)%COLORS.length]||COLORS[0];
+const key=(r,s)=>`${r}||${s}`;
+
+function parseSlot(slot){
+  const parts=slot.replace(/[–—-]/,'|').split('|');
+  if(parts.length<2)return null;
+  const[sh,sm]=(parts[0].trim()+':00').split(':').map(Number);
+  const[eh,em]=(parts[1].trim()+':00').split(':').map(Number);
+  return{startH:sh,startM:sm||0,endH:eh,endM:em||0};
+}
+
+// slotStatus is per-room (takes extension into account)
+function roomStatus(slot,k){
+  const p=parseSlot(slot);if(!p)return'upcoming';
+  const ext=extensions[k]||0;
+  const now=new Date();
+  const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const startMs=base.getTime()+(p.startH*60+p.startM)*60*1000;
+  const endMs=base.getTime()+(p.endH*60+p.endM+ext)*60*1000;
+  if(now.getTime()<startMs)return'upcoming';
+  const msToEnd=endMs-now.getTime();
+  if(msToEnd<0)return'overtime';
+  if(msToEnd<=15*60*1000)return'warn15';
+  if(msToEnd<=30*60*1000)return'warn30';
+  return'active';
+}
+
+// Slot-level status = worst among occupied rooms
+// 場次原始狀態（不考慮延長）— 用於卡片標頭顯示
+function slotStatusRaw(slot){
+  const p=parseSlot(slot);if(!p)return'upcoming';
+  const now=new Date();
+  const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const startMs=base.getTime()+(p.startH*60+p.startM)*60*1000;
+  const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
+  if(now.getTime()<startMs)return'upcoming';
+  const msToEnd=endMs-now.getTime();
+  if(msToEnd<0){
+    // 已超時：確認是否可視為已結束
+    const hasUnreturned=ROOMS.some(room=>{
+      const k=key(room,slot);
+      return assignments[k]&&!returned[k];
+    });
+    if(!hasUnreturned){
+      const si=SLOTS.indexOf(slot);
+      if(si===SLOTS.length-1)return'done';
+      const nextP=parseSlot(SLOTS[si+1]);
+      if(nextP){
+        const nextStartMs=base.getTime()+(nextP.startH*60+nextP.startM)*60*1000;
+        if(now.getTime()>=nextStartMs)return'done';
+      }
+    }
+    return'overtime';
+  }
+  if(msToEnd<=15*60*1000)return'warn15';
+  if(msToEnd<=30*60*1000)return'warn30';
+  return'active';
+}
+
+function slotStatus(slot){
+  const order=['overtime','warn15','warn30','active','upcoming','done'];
+  let worst='upcoming';
+  ROOMS.forEach(room=>{
+    const sid=assignments[key(room,slot)];
+    if(!sid)return;
+    const st=roomStatus(slot,key(room,slot));
+    if(order.indexOf(st)<order.indexOf(worst))worst=st;
+  });
+
+  // 如果最差狀態是 overtime，再確認是否下一場次已開始且所有包廂都已歸還
+  if(worst==='overtime'){
+    const p=parseSlot(slot);if(!p)return'overtime';
+    const now=new Date();
+    const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
+    if(now.getTime()>endMs){
+      const hasUnreturned=ROOMS.some(room=>{
+        const k=key(room,slot);
+        return assignments[k]&&!returned[k];
+      });
+      if(!hasUnreturned){
+        const si=SLOTS.indexOf(slot);
+        if(si===SLOTS.length-1)return'done'; // 最後場次
+        const nextP=parseSlot(SLOTS[si+1]);
+        if(nextP){
+          const nextStartMs=base.getTime()+(nextP.startH*60+nextP.startM)*60*1000;
+          if(now.getTime()>=nextStartMs)return'done';
+        }
+      }
+    }
+    return'overtime';
+  }
+
+  if(worst==='upcoming'){
+    const p=parseSlot(slot);if(!p)return'upcoming';
+    const now=new Date();
+    const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    const startMs=base.getTime()+(p.startH*60+p.startM)*60*1000;
+    const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
+    if(now.getTime()<startMs)return'upcoming';
+    if(now.getTime()>endMs){
+      const si=SLOTS.indexOf(slot);
+      if(si===SLOTS.length-1)return'done';
+      const nextP=parseSlot(SLOTS[si+1]);
+      if(nextP){
+        const nextStartMs=base.getTime()+(nextP.startH*60+nextP.startM)*60*1000;
+        if(now.getTime()>=nextStartMs)return'done';
+      }
+    }
+    return'active';
+  }
+  return worst;
+}
+
+function minsToEndRoom(slot,k){
+  const p=parseSlot(slot);if(!p)return 9999;
+  const ext=extensions[k]||0;
+  const now=new Date();
+  const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const endMs=base.getTime()+(p.endH*60+p.endM+ext)*60*1000;
+  return Math.round((endMs-now.getTime())/60000);
+}
+
+function occupiedRooms(slot){
+  const res=[];
+  ROOMS.forEach(room=>{
+    const k=key(room,slot);
+    const sid=assignments[k];
+    if(sid&&!returned[k]){
+      const ext=extensions[k]||0;
+      const rst=roomStatus(slot,k);
+      // 延長中（還沒到期）= 有extension且不是overtime → 不計入警示
+      const isExtActive=ext>0&&rst!=='overtime'&&rst!=='upcoming'&&rst!=='done';
+      if(!isExtActive){
+        const s=STORES.find(x=>x.id===sid);
+        if(s)res.push({room,k,sid,name:s.name,ext});
+      }
+    }
+  });
+  return res;
+}
+
+function badgeFor(st,slot){
+  // 使用原始場次結束時間（不考慮延長），與電腦版左側倒數一致
+  function origEndMs(slot){
+    const p=parseSlot(slot);if(!p)return null;
+    const now=new Date();
+    const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+    return base.getTime()+(p.endH*60+p.endM)*60*1000;
+  }
+  if(st==='active'){
+    const endMs=origEndMs(slot);
+    if(endMs){
+      const mins=Math.round((endMs-Date.now())/60000);
+      return`<span class="sb sb-active">● 進行中 剩 ${mins} 分</span>`;
+    }
+    return'<span class="sb sb-active">● 進行中</span>';
+  }
+  if(st==='warn30'){
+    const endMs=origEndMs(slot);
+    if(endMs){
+      const mins=Math.round((endMs-Date.now())/60000);
+      return`<span class="sb sb-w30">⚠ 剩 ${mins} 分</span>`;
+    }
+    return'<span class="sb sb-w30">⚠ 30分後結束</span>';
+  }
+  if(st==='warn15'){
+    const endMs=origEndMs(slot);
+    if(endMs){
+      const mins=Math.round((endMs-Date.now())/60000);
+      return`<span class="sb sb-w15">⚠ 剩 ${mins} 分</span>`;
+    }
+    return'<span class="sb sb-w15">⚠ 15分後結束</span>';
+  }
+  if(st==='overtime'){
+    const endMs=origEndMs(slot);
+    if(endMs){
+      const otMins=Math.abs(Math.round((endMs-Date.now())/60000));
+      return`<span class="sb sb-ot">🚨 已超時 ${otMins} 分</span>`;
+    }
+    return'<span class="sb sb-ot">🚨 已超時</span>';
+  }
+  if(st==='done')return'<span class="sb sb-done">已結束</span>';
+  return'<span class="sb sb-up">待開始</span>';
+}
+
+function cellCls(st,hasStore){
+  if(!hasStore)return'cell';
+  let c='cell filled';
+  if(st==='overtime')c+=' cell-ot';
+  else if(st==='warn15')c+=' cell-w15';
+  else if(st==='warn30')c+=' cell-w30';
+  else if(st==='done')c+=' cell-done';
+  return c;
+}
+
+function updateAlert(){
+  const banner=document.getElementById('alertBanner');
+  // Find worst occupied room across all slots
+  let worst=null;
+  const order=['overtime','warn15','warn30'];
+  SLOTS.forEach(slot=>{
+    occupiedRooms(slot).forEach(({k,name,ext})=>{
+      const st=roomStatus(slot,k);
+      if(!order.includes(st))return;
+      if(!worst||order.indexOf(st)<order.indexOf(worst.st))
+        worst={slot,st,mins:minsToEndRoom(slot,k)};
+    });
+  });
+  if(!worst){banner.className='alert';return;}
+
+  // Collect store names for that slot's alarming rooms
+  const alarmingNames=[...new Set(
+    occupiedRooms(worst.slot)
+      .filter(({k})=>order.includes(roomStatus(worst.slot,k)))
+      .map(({name})=>name)
+  )];
+
+  let pillClass,alertClass,iconTxt,msgTxt;
+  if(worst.st==='overtime'){
+    alertClass='alert alert-ot show';iconTxt='🚨';pillClass='pill-ot';
+    msgTxt=`超時！場次 ${worst.slot} 已結束，請撤出包廂：`;
+  }else if(worst.st==='warn15'){
+    alertClass='alert alert-w15 show';iconTxt='⚠️';pillClass='pill-w15';
+    msgTxt=`注意！場次 ${worst.slot} 距結束剩 ${Math.max(0,worst.mins)} 分鐘，請提醒以下店鋪準備離場：`;
+  }else{
+    alertClass='alert alert-w30 show';iconTxt='！';pillClass='pill-w30';
+    msgTxt=`提醒：場次 ${worst.slot} 距結束剩 ${worst.mins} 分鐘，以下店鋪使用中：`;
+  }
+  banner.className=alertClass;
+  document.getElementById('alertIcon').textContent=iconTxt;
+  document.getElementById('alertMsg').textContent=msgTxt;
+  document.getElementById('alertStores').innerHTML=alarmingNames.map(n=>`<span class="store-pill ${pillClass}">${n}</span>`).join('');
+}
+
+function slotCountdownHTML(slot){
+  const p=parseSlot(slot);if(!p)return'';
+  const now=new Date();
+  const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const startMs=base.getTime()+(p.startH*60+p.startM)*60*1000;
+  const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
+  if(now.getTime()<startMs)return`<span class="sb sb-up">待開始</span>`;
+  const msToEnd=endMs-now.getTime();
+  if(msToEnd<0){
+    const otMins=Math.abs(Math.round(msToEnd/60000));
+    const si=SLOTS.indexOf(slot);
+    // 檢查是否可視為「已結束」：下一場次已開始，或是最後一個場次且無未歸還包廂
+    const hasUnreturned=ROOMS.some(room=>{
+      const k=key(room,slot);
+      return assignments[k]&&!returned[k];
+    });
+    if(!hasUnreturned){
+      if(si===SLOTS.length-1){
+        // 最後一個場次，無未歸還包廂 → 已結束
+        return`<span class="sb sb-done">已結束</span>`;
+      }
+      const nextP=parseSlot(SLOTS[si+1]);
+      if(nextP){
+        const nextStartMs=base.getTime()+(nextP.startH*60+nextP.startM)*60*1000;
+        if(now.getTime()>=nextStartMs)return`<span class="sb sb-done">已結束</span>`;
+      }
+    }
+    return`<span class="sb sb-ot">🚨 已超時 ${otMins} 分</span>`;
+  }
+  const mins=Math.round(msToEnd/60000);
+  if(mins<=15)return`<span class="sb sb-w15">⚠ 剩 ${mins} 分</span>`;
+  if(mins<=30)return`<span class="sb sb-w30">⚠ 剩 ${mins} 分</span>`;
+  return`<span class="sb sb-active">進行中 剩 ${mins} 分</span>`;
+}
+function updateSlotLabels(){
+  SLOTS.forEach(slot=>{
+    const el=document.getElementById(`slotlbl-${encodeURIComponent(slot)}`);
+    if(el)el.innerHTML=slotCountdownHTML(slot);
+  });
+}
+
+// 從包廂名稱自動偵測樓層（例如「包廂 6F-1」→「6F」）
+// 支援格式：含 6F/5F/4F/3F/B1 等字串，或純數字則歸為「其他」
+function getFloorFromName(roomName){
+  const m=roomName.match(/(\d+F|B\d+)/i);
+  return m?m[1].toUpperCase():'其他';
+}
+function getFloor(roomIndex){
+  return getFloorFromName(ROOMS[roomIndex]||'');
+}
+// 動態產生樓層顏色（固定幾個常用樓層，其他用灰色）
+const FLOOR_COLOR_MAP={
+  '6F':{bg:'#185FA5',text:'#ffffff',light:'#E6F1FB'},
+  '5F':{bg:'#3B6D11',text:'#ffffff',light:'#EAF3DE'},
+  '4F':{bg:'#7C3E0E',text:'#ffffff',light:'#FAEEDA'},
+  '3F':{bg:'#534AB7',text:'#ffffff',light:'#EEEDFE'},
+  'B1':{bg:'#444441',text:'#ffffff',light:'#F1EFE8'},
+  '其他':{bg:'#666',text:'#ffffff',light:'#f0f0f0'},
+};
+function getFloorColor(floor){
+  return FLOOR_COLOR_MAP[floor]||{bg:'#555',text:'#ffffff',light:'#eee'};
+}
+// 取得目前 ROOMS 中出現的樓層，保持順序
+function getFloorGroups(){
+  const seen=new Set();
+  const groups=[];
+  ROOMS.forEach((room,i)=>{
+    const f=getFloor(i);
+    if(!seen.has(f)){seen.add(f);groups.push(f);}
+  });
+  return groups;
+}
+const FLOOR_COLORS=FLOOR_COLOR_MAP;
+
+function buildTable(){
+  const tbl=document.getElementById('grid');
+  // 建立表頭：第一行是樓層色塊，第二行是包廂名稱
+  const floorSpans={};
+  ROOMS.forEach((_,i)=>{const f=getFloor(i);floorSpans[f]=(floorSpans[f]||0)+1;});
+  let floorRow='<tr><th rowspan="2" style="background:#2C3E6B;color:#fff;font-size:14px;font-weight:600;text-align:center;padding:10px 14px;border-right:2px solid #3d5080;vertical-align:middle;">時段 / 包廂</th>';
+  let roomRow='<tr>';
+  const seenFloors=new Set();
+  ROOMS.forEach((room,i)=>{
+    const f=getFloor(i);
+    const fc=getFloorColor(f);
+    if(!seenFloors.has(f)){
+      seenFloors.add(f);
+      const span=floorSpans[f];
+      const borderL=i>0?`border-left:2px solid #3d5080;`:'';
+      floorRow+=`<th colspan="${span}" style="background:${fc.bg};color:${fc.text};font-size:13px;font-weight:600;padding:8px 6px;text-align:center;${borderL}letter-spacing:.5px;">${f}</th>`;
+    }
+    const borderL=getFloor(i)!==getFloor(i-1)&&i>0?`border-left:2px solid #c8cfe0;`:'';
+    roomRow+=`<th style="background:#2C3E6B;color:#ffffff;font-size:13px;font-weight:600;padding:10px 8px;text-align:center;border-right:0.5px solid #3d5080;${borderL}">${room}</th>`;
+  });
+  floorRow+='</tr>';
+  roomRow+='</tr>';
+
+  let h=`<thead>${floorRow}${roomRow}</thead><tbody>`;
+  SLOTS.forEach(slot=>{
+    h+=`<tr><td><div class="slot-label"><span class="slot-time">${slot}</span><span id="slotlbl-${encodeURIComponent(slot)}">${slotCountdownHTML(slot)}</span></div></td>`;
+    ROOMS.forEach((room,i)=>{
+      const k=key(room,slot);const sid=assignments[k];
+      const borderL=getFloor(i)!==getFloor(i-1)&&i>0?'border-left:2px solid #c8cfe0;':'';
+      if(sid){
+        const s=STORES.find(x=>x.id===sid);const c=s?color(sid):{bg:'#eee',border:'#ccc',text:'#666'};
+        const rst=roomStatus(slot,k);const ext=extensions[k]||0;
+        const isRet=returned[k]||false;
+        const isExtActive=ext>0&&rst!=='overtime'&&rst!=='upcoming'&&rst!=='done';
+        const minsLeft=isExtActive?Math.max(0,minsToEndRoom(slot,k)):0;
+        const extTxt=isExtActive
+          ?`<span class="ext-label">申請延長${ext}分鐘 剩 ${minsLeft} 分</span>`
+          :ext>0&&rst==='overtime'?`<span class="ext-label">申請延長${ext}分鐘（已到期）</span>`:'';
+        const retTxt=isRet?`<span class="done-label">已歸還</span>`:'';
+        const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${c.bg};border:2px solid ${c.border};color:${c.text};`;
+        const cellClass=isRet?'cell filled cell-done':isExtActive?'cell filled':cellCls(rst,true);
+        h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}"><div class="assigned" style="${retStyle}">${s?s.name:''}${extTxt}${retTxt}</div></div></td>`;
+      }else{h+=`<td style="${borderL}"><div class="cell"></div></td>`;}
+    });
+    h+='</tr>';
+  });
+  tbl.innerHTML=h+'</tbody>';
+}
+
+function buildCards(){
+  const container=document.getElementById('slotCards');let html='';
+
+  // 手機版排序：超時/進行中/警示 → 待開始 → 已結束
+  const statusOrder={'overtime':0,'warn15':1,'warn30':2,'active':3,'upcoming':4,'done':5};
+  const sortedSlots=[...SLOTS].sort((a,b)=>{
+    const sa=slotStatus(a),sb=slotStatus(b);
+    const oa=statusOrder[sa]??6,ob=statusOrder[sb]??6;
+    if(oa!==ob)return oa-ob;
+    // 同狀態下維持原本時間順序
+    return SLOTS.indexOf(a)-SLOTS.indexOf(b);
+  });
+
+  sortedSlots.forEach(slot=>{
+    const st=slotStatus(slot);        // 用於排序和格子狀態
+    const stRaw=slotStatusRaw(slot);  // 用於卡片標頭顯示（原始場次時間）
+    // 手機版卡片閃爍：只看「未歸還且未延長中」的格子狀態
+    const hasOtRoom=ROOMS.some(room=>{
+      const k=key(room,slot);
+      const sid=assignments[k];
+      if(!sid||returned[k])return false;
+      const ext=extensions[k]||0;
+      const rst=roomStatus(slot,k);
+      const isExtActive=ext>0&&rst!=='overtime';
+      return!isExtActive&&rst==='overtime';
+    });
+    const hasW15Room=ROOMS.some(room=>{
+      const k=key(room,slot);
+      const sid=assignments[k];
+      if(!sid||returned[k])return false;
+      const ext=extensions[k]||0;
+      const rst=roomStatus(slot,k);
+      const isExtActive=ext>0&&rst!=='overtime';
+      return!isExtActive&&rst==='warn15';
+    });
+    const hasW30Room=ROOMS.some(room=>{
+      const k=key(room,slot);
+      const sid=assignments[k];
+      if(!sid||returned[k])return false;
+      const ext=extensions[k]||0;
+      const rst=roomStatus(slot,k);
+      const isExtActive=ext>0&&rst!=='overtime';
+      return!isExtActive&&rst==='warn30';
+    });
+    let cardCls='slot-card';
+    if(hasOtRoom)cardCls+=' card-ot';
+    else if(hasW15Room)cardCls+=' card-w15';
+    else if(hasW30Room)cardCls+=' card-w30';
+    html+=`<div class="${cardCls}"><div class="slot-header"><span class="slot-time-m">${slot}</span>${badgeFor(stRaw,slot)}</div>`;
+
+    // 手機版：按樓層分區顯示（從包廂名稱自動偵測樓層）
+    const floors=getFloorGroups();
+    floors.forEach(floor=>{
+      const fc=getFloorColor(floor);
+      const floorRooms=ROOMS.map((r,i)=>({r,i})).filter(({i})=>getFloor(i)===floor);
+      if(floorRooms.length===0)return;
+      html+=`<div style="border-top:1px solid #eee;">
+        <div style="background:${fc.bg};color:${fc.text};font-size:11px;font-weight:600;padding:4px 12px;letter-spacing:.5px;">${floor}</div>
+        <div class="slot-rooms">`;
+      floorRooms.forEach(({r:room,i})=>{
+        const k=key(room,slot);const sid=assignments[k];
+        if(sid){
+          const s=STORES.find(x=>x.id===sid);const c=s?color(sid):{bg:'#eee',border:'#ccc',text:'#666'};
+          const rst=roomStatus(slot,k);const ext=extensions[k]||0;
+          const isRet=returned[k]||false;
+          const isExtActive=ext>0&&rst!=='overtime'&&rst!=='upcoming'&&rst!=='done';
+          const minsLeft=isExtActive?Math.max(0,minsToEndRoom(slot,k)):0;
+          let rCls='room-cell has-store';
+          if(isRet)rCls+=' cell-done';
+          else if(isExtActive)rCls+='';
+          else if(rst==='overtime')rCls+=' cell-ot';
+          else if(rst==='warn15')rCls+=' cell-w15';
+          else if(rst==='warn30')rCls+=' cell-w30';
+          const extTxt=isExtActive
+            ?`<span class="ext-lbl-m">申請延長${ext}分鐘 剩 ${minsLeft} 分</span>`
+            :ext>0&&rst==='overtime'?`<span class="ext-lbl-m">申請延長${ext}分鐘（已到期）</span>`:'';
+          const retTxt=isRet?`<span class="done-lbl-m">已歸還</span>`:'';
+          const cellStyle=isRet?'opacity:.5;background:#f5f5f5;border:1px solid #e0e0e0;':`background:${c.bg};border:1.5px solid ${c.border};`;
+          const nameColor=isRet?'color:#aaa;':`color:${c.text};`;
+          html+=`<div class="${rCls}" style="${cellStyle}"><span class="room-lbl" style="${nameColor}opacity:.7;">${room}</span><span class="store-nm" style="${nameColor}">${s?s.name:''}</span>${extTxt}${retTxt}</div>`;
+        }else{html+=`<div class="room-cell"><span class="room-empty">${room}</span></div>`;}
+      });
+      html+=`</div></div>`;
+    });
+    html+='</div>';
+  });
+  container.innerHTML=html;
+}
+
+function updateClock(){document.getElementById('clock').textContent='現在時間：'+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
+
+function tick(){
+  const total=Object.keys(assignments).length;
+  document.getElementById('emptyNotice').style.display=total===0?'block':'none';
+  buildTable();buildCards();updateAlert();updateClock();updateSlotLabels();
+}
+// 輕量更新：每3秒更新時間、警示、手機卡片排序
+function updateExtLabels(){
+  SLOTS.forEach(slot=>{
+    ROOMS.forEach(room=>{
+      const k=key(room,slot);
+      const sid=assignments[k];
+      if(!sid)return;
+      const ext=extensions[k]||0;
+      if(ext===0)return;
+      const isRet=returned[k]||false;
+      if(isRet)return;
+      const rst=roomStatus(slot,k);
+      const isExtActive=ext>0&&rst!=='overtime'&&rst!=='upcoming'&&rst!=='done';
+      const minsLeft=isExtActive?Math.max(0,minsToEndRoom(slot,k)):0;
+      const cell=document.querySelector(`.cell[data-k="${CSS.escape(k)}"]`);
+      if(!cell)return;
+      const extEl=cell.querySelector('.ext-label');
+      if(!extEl)return;
+      if(isExtActive){
+        extEl.textContent=`申請延長${ext}分鐘 剩 ${minsLeft} 分`;
+      }else if(rst==='overtime'){
+        extEl.textContent=`申請延長${ext}分鐘（已到期）`;
+      }
+    });
+  });
+}
+
+function updateCellStyles(){
+  // 更新電腦版格子和列的警示樣式（不重建DOM）
+  SLOTS.forEach(slot=>{
+    ROOMS.forEach(room=>{
+      const k=key(room,slot);
+      const sid=assignments[k];
+      if(!sid)return;
+      const isRet=returned[k]||false;
+      if(isRet)return;
+      const rst=roomStatus(slot,k);
+      const ext=extensions[k]||0;
+      const isExtActive=ext>0&&rst!=='overtime'&&rst!=='upcoming'&&rst!=='done';
+      const cell=document.querySelector(`.cell[data-k="${CSS.escape(k)}"]`);
+      if(!cell)return;
+      // 移除所有警示 class，重新套用
+      cell.classList.remove('cell-ot','cell-w15','cell-w30','cell-done');
+      if(!isExtActive){
+        if(rst==='overtime')cell.classList.add('cell-ot');
+        else if(rst==='warn15')cell.classList.add('cell-w15');
+        else if(rst==='warn30')cell.classList.add('cell-w30');
+        else if(rst==='done')cell.classList.add('cell-done');
+      }
+    });
+  });
+}
+
+function lightTick(){updateAlert();updateClock();updateSlotLabels();buildCards();updateExtLabels();updateCellStyles();}
+
+onValue(dbRef,snap=>{
+  const d=snap.val();
+  if(!d){document.getElementById('emptyNotice').style.display='block';return;}
+  if(d.slots?.length)SLOTS=d.slots;
+  if(d.rooms?.length)ROOMS=d.rooms;
+  if(d.stores?.length)STORES=d.stores;
+  assignments=d.assignments||{};
+  extensions=d.extensions||{};
+  returned=d.returned||{};
+  tick();
+});
+
+tick();
+setInterval(lightTick,3000);
+setInterval(updateClock,1000);
+</script>
+</body>
+</html>
