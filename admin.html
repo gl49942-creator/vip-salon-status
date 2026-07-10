@@ -518,9 +518,10 @@ function buildAll(){buildLegend();buildGrid();render();}
 
 // ── TOKEN 借用管理 ──────────────────────────────
 function totalLent(){
-  const roomTotal=Object.values(tokens).reduce((s,v)=>s+(v||0),0);
-  const otherTotal=typeof tokens['__other_count__']==='number'?tokens['__other_count__']:0;
-  return roomTotal+otherTotal;
+  return Object.entries(tokens).reduce((s,[k,v])=>{
+    if(k==='__other_note__')return s; // 排除備註文字
+    return s+(typeof v==='number'?v:0);
+  },0);
 }
 function buildTokenSection(){
   const lent=totalLent();
