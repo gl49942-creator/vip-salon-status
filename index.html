@@ -480,7 +480,6 @@ function buildTable(){
         const s=STORES.find(x=>x.id===sid);const c=s?color(sid):{bg:'#eee',border:'#ccc',text:'#666'};
         const rst=roomStatus(slot,k);
         const isRet=returned[k]||false;
-        const retTxt=isRet?`<span class="done-label">已歸還</span>`:'';
         const sf=staff[k]||{};
         const staffParts=[];
         if(sf.expert)staffParts.push(`💡 ${sf.expert}`);
