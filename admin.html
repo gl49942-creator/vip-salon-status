@@ -517,13 +517,15 @@ window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignment
 function buildAll(){buildLegend();buildGrid();render();}
 
 // ── TOKEN 借用管理 ──────────────────────────────
-function totalLent(){return Object.values(tokens).reduce((s,v)=>s+(v||0),0);}
+function totalLent(){
+  const roomTotal=Object.values(tokens).reduce((s,v)=>s+(v||0),0);
+  const otherTotal=typeof tokens['__other_count__']==='number'?tokens['__other_count__']:0;
+  return roomTotal+otherTotal;
+}
 function buildTokenSection(){
   const lent=totalLent();
-  const remain=TOKEN_TOTAL-lent;
   document.getElementById('tokenSummary').innerHTML=`
-    <div class="token-summary-box ts-lent"><span class="ts-num">${lent}</span><span class="ts-lbl">已借出</span></div>
-    `;
+    <div class="token-summary-box ts-lent"><span class="ts-num">${lent}</span><span class="ts-lbl">已借出</span></div>`;
   const grid=document.getElementById('tokenGrid');
   grid.innerHTML='';
   ROOMS.forEach(room=>{
@@ -540,7 +542,37 @@ function buildTokenSection(){
       <div class="token-label">${cnt>0?`已借 ${cnt} 顆`:'未借用'}</div>`;
     grid.appendChild(card);
   });
-  // Event delegation for token buttons
+
+  // 「其他」卡片
+  const otherCnt=tokens['__other_count__']||0;
+  const otherNote=tokens['__other_note__']||'';
+  const otherCard=document.createElement('div');
+  otherCard.className='token-card';
+  otherCard.style.minWidth='200px';
+  otherCard.innerHTML=`
+    <div class="token-room">其他</div>
+    <input id="otherNoteInput" type="text" placeholder="說明（例：前台暫借）"
+      value="${otherNote}"
+      style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;margin-bottom:6px;outline:none;"
+      onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
+    <div class="token-controls">
+      <button class="token-btn" data-room="__other__" data-delta="-1">－</button>
+      <span class="token-count">${otherCnt}</span>
+      <button class="token-btn" data-room="__other__" data-delta="1">＋</button>
+    </div>
+    <div class="token-label">${otherCnt>0?`已借 ${otherCnt} 顆`:'未借用'}</div>`;
+  grid.appendChild(otherCard);
+
+  // 備註欄輸入監聽
+  const noteInput=document.getElementById('otherNoteInput');
+  if(noteInput){
+    noteInput.addEventListener('change',()=>{
+      tokens['__other_note__']=noteInput.value.trim();
+      push();
+    });
+  }
+
+  // Event delegation
   grid.onclick=(e)=>{
     const btn=e.target.closest('[data-delta]');
     if(!btn)return;
@@ -550,13 +582,14 @@ function buildTokenSection(){
   };
 }
 function adjustToken(room,delta){
-  const cur=tokens[room]||0;
+  const key=room==='__other__'?'__other_count__':room;
+  const cur=tokens[key]||0;
   const lent=totalLent();
   const next=cur+delta;
   if(next<0)return;
   if(delta>0&&lent>=TOKEN_TOTAL){alert('已達借用上限（5 顆）！');return;}
-  if(next===0)delete tokens[room];
-  else tokens[room]=next;
+  if(next===0)delete tokens[key];
+  else tokens[key]=next;
   buildTokenSection();push();
 }
 

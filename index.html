@@ -679,8 +679,10 @@ onValue(dbRef,snap=>{
 });
 
 function buildTokenDisplay(){
-  const lent=Object.values(tokens).reduce((s,v)=>s+(v||0),0);
-  const remain=TOKEN_TOTAL-lent;
+  const lent=Object.entries(tokens).reduce((s,[k,v])=>{
+    if(k==='__other_note__')return s;
+    return s+(v||0);
+  },0);
   const hasAny=lent>0;
   const display=document.getElementById('tokenDisplay');
   display.style.display=hasAny?'block':'none';
@@ -692,13 +694,23 @@ function buildTokenDisplay(){
     </div>`;
   const grid=document.getElementById('tokenViewGrid');
   grid.innerHTML='';
+  // 顯示各包廂
   Object.entries(tokens).forEach(([room,cnt])=>{
-    if(!cnt)return;
+    if(room==='__other_note__'||room==='__other_count__'||!cnt)return;
     const chip=document.createElement('div');
     chip.style.cssText='padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:500;color:#1a1a1a;';
     chip.innerHTML=`${room}：<strong>${cnt} 顆</strong>`;
     grid.appendChild(chip);
   });
+  // 顯示「其他」
+  const otherCnt=tokens['__other_count__']||0;
+  const otherNote=tokens['__other_note__']||'其他';
+  if(otherCnt>0){
+    const chip=document.createElement('div');
+    chip.style.cssText='padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;font-weight:500;color:#1a1a1a;';
+    chip.innerHTML=`${otherNote}：<strong>${otherCnt} 顆</strong>`;
+    grid.appendChild(chip);
+  }
 }
 
 tick();
