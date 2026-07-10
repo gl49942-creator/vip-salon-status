@@ -71,14 +71,11 @@ tbody td:last-child{border-right:none;}
 .assigned{padding:5px 7px;border-radius:8px;font-size:12px;font-weight:600;width:100%;text-align:center;cursor:grab;position:relative;line-height:1.3;display:flex;flex-direction:column;align-items:center;gap:2px;}
 .assigned:active{cursor:grabbing;}
 .store-label{font-size:13px;font-weight:600;}
-.ext-badge{font-size:10px;font-weight:600;padding:1px 7px;border-radius:8px;background:rgba(0,0,0,.12);color:inherit;margin-top:1px;}
 .remove-btn{position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#E24B4A;color:white;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;border:none;line-height:1;padding:0;}
-.extend-btn{position:absolute;bottom:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#185FA5;color:white;font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;border:none;line-height:1;padding:0;font-weight:700;}
 .return-btn{position:absolute;bottom:-6px;left:-6px;width:18px;height:18px;border-radius:50%;background:#1D9E75;color:white;font-size:11px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;border:none;line-height:1;padding:0;font-weight:700;}
 .staff-btn{position:absolute;top:-6px;left:-6px;width:18px;height:18px;border-radius:50%;background:#BA7517;color:white;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;border:none;line-height:1;padding:0;}
 .client-btn{position:absolute;bottom:-6px;right:14px;width:18px;height:18px;border-radius:50%;background:#534AB7;color:white;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;border:none;line-height:1;padding:0;}
 .cell:hover .remove-btn,.assigned:hover .remove-btn,
-.cell:hover .extend-btn,.assigned:hover .extend-btn,
 .cell:hover .return-btn,.assigned:hover .return-btn,
 .cell:hover .staff-btn,.assigned:hover .staff-btn,
 .cell:hover .client-btn,.assigned:hover .client-btn{opacity:1;}
@@ -137,7 +134,7 @@ tbody td:last-child{border-right:none;}
 
 <div class="legend-label">店鋪列表（拖拉至格子進行分配）</div>
 <div class="legend" id="legend"></div>
-<p class="tip">拖拉店鋪至格子分配；✕ 移除；＋ 延長時間</p>
+<p class="tip">拖拉店鋪至格子分配；✕ 移除</p>
 <div class="actions">
   <button class="action-btn" onclick="clearAll()">全部清除</button>
   <button class="action-btn btn-export" onclick="exportExcel()">📥 匯出報表</button>
@@ -159,21 +156,6 @@ tbody td:last-child{border-right:none;}
     <div id="tokenSummary" style="display:flex;gap:12px;"></div>
   </div>
   <div id="tokenGrid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
-</div>
-
-<!-- Extend modal -->
-<div class="modal-overlay" id="extModal">
-  <div class="modal">
-    <h3>延長使用時間</h3>
-    <p id="extModalDesc">選擇延長時間</p>
-    <div class="modal-btns">
-      <button class="ext-opt" onclick="confirmExtend(15)">延長 15 分鐘</button>
-      <button class="ext-opt" onclick="confirmExtend(30)">延長 30 分鐘</button>
-      <button class="ext-opt" onclick="confirmExtend(45)">延長 45 分鐘</button>
-      <button class="ext-opt" onclick="confirmExtend(60)">延長 60 分鐘</button>
-      <button class="ext-cancel" onclick="closeExtModal()">取消</button>
-    </div>
-  </div>
 </div>
 
 <!-- Client modal -->
@@ -256,7 +238,6 @@ let SLOTS=['11:00–13:00','13:00–15:00','15:00–17:00','17:00–19:00','19:0
 let ROOMS=Array.from({length:9},(_,i)=>`包廂 ${i+1}`);
 let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'},{id:'tnn',name:'TN'},{id:'101',name:'TPE 101'},{id:'a3',name:'A3'},{id:'lvb',name:'LVB'},{id:'sogo',name:'SOGO'}];
 let assignments={};   // {key: storeId}
-let extensions={};    // {key: extraMinutes}
 let returned={};      // {key: bool}
 let staff={};         // {key: {expert, runner, ca}}
 let tokens={};        // {roomName: count}
@@ -264,7 +245,6 @@ let clients={};       // {key: {clientId, clientName, segment}}
 let clientList=[];    // [{id, name, segment}] 從Excel載入
 const TOKEN_TOTAL=5;
 let dragStore=null,dragFrom=null,isSyncing=false;
-let pendingExtKey=null;
 
 const color=id=>COLORS[STORES.findIndex(s=>s.id===id)%COLORS.length]||COLORS[0];
 const key=(r,s)=>`${r}||${s}`;
@@ -277,7 +257,7 @@ function setSyncStatus(s){
 }
 function push(){
   isSyncing=true;setSyncStatus('saving');
-  set(dbRef,{assignments,extensions,returned,staff,tokens,clients,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;});
+  set(dbRef,{assignments,returned,staff,tokens,clients,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
@@ -286,7 +266,6 @@ onValue(dbRef,snap=>{
   if(d.rooms?.length)ROOMS=d.rooms;
   if(d.stores?.length)STORES=d.stores;
   assignments=d.assignments||{};
-  extensions=d.extensions||{};
   returned=d.returned||{};
   staff=d.staff||{};
   tokens=d.tokens||{};
@@ -316,7 +295,7 @@ window.applySettings=()=>{
   // 只清除已不存在的 slot 或 room 的資料，保留有效的
   const validKeys=new Set();
   SLOTS.forEach(slot=>ROOMS.forEach(room=>validKeys.add(key(room,slot))));
-  [assignments,extensions,returned,staff].forEach(obj=>{
+  [assignments,returned,staff].forEach(obj=>{
     Object.keys(obj).forEach(k=>{if(!validKeys.has(k))delete obj[k];});
   });
   // TOKEN：只保留還存在的包廂
@@ -326,7 +305,7 @@ window.applySettings=()=>{
   const renameMap={};
   oldRooms.forEach((oldName,i)=>{if(ROOMS[i]&&ROOMS[i]!==oldName)renameMap[oldName]=ROOMS[i];});
   if(Object.keys(renameMap).length>0){
-    [assignments,extensions,returned,staff].forEach(obj=>{
+    [assignments,returned,staff].forEach(obj=>{
       Object.keys(obj).forEach(k=>{
         const[room,slot]=k.split('||');
         if(renameMap[room]){
@@ -347,19 +326,6 @@ window.applySettings=()=>{
 
   document.getElementById('settingsPanel').classList.remove('open');
   buildAll();push();
-};
-
-// Extend modal
-window.openExtModal=function(k,storeName,slot){
-  pendingExtKey=k;
-  document.getElementById('extModalDesc').textContent=`${storeName}　${slot}`;
-  document.getElementById('extModal').classList.add('open');
-};
-window.closeExtModal=()=>{document.getElementById('extModal').classList.remove('open');pendingExtKey=null;};
-window.confirmExtend=mins=>{
-  if(!pendingExtKey)return;
-  extensions[pendingExtKey]=(extensions[pendingExtKey]||0)+mins;
-  closeExtModal();render();push();
 };
 
 function buildLegend(){
@@ -480,7 +446,7 @@ function buildGrid(){
     cell.addEventListener('drop',e=>{
       e.preventDefault();cell.classList.remove('drag-over');if(!dragStore)return;
       const k=key(decodeURIComponent(cell.dataset.room),decodeURIComponent(cell.dataset.slot));
-      if(dragFrom){delete assignments[dragFrom];delete extensions[dragFrom];delete returned[dragFrom];}
+      if(dragFrom){delete assignments[dragFrom];delete returned[dragFrom];}
       assignments[k]=dragStore;dragStore=null;dragFrom=null;render();push();
     });
   });
@@ -495,26 +461,9 @@ function render(){
     if(sid){
       const s=STORES.find(x=>x.id===sid);if(!s){delete assignments[k];cell.classList.remove('filled');cell.innerHTML='';return;}
       const c=color(sid);
-      const ext=extensions[k]||0;
       const isReturned=returned[k]||false;
       const sf=staff[k]||{};
       const cl=clients[k]||{};
-      // 計算延長剩餘時間
-      let extLabel='';
-      if(ext>0&&!isReturned){
-        const p=parseSlot(slot);
-        if(p){
-          const now=new Date();
-          const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-          const endMs=base.getTime()+(p.endH*60+p.endM+ext)*60*1000;
-          const minsLeft=Math.round((endMs-now.getTime())/60000);
-          if(minsLeft>0){
-            extLabel=`<span class="ext-badge">申請延長${ext}分鐘 剩 ${minsLeft} 分</span>`;
-          }else{
-            extLabel=`<span class="ext-badge">申請延長${ext}分鐘（已到期）</span>`;
-          }
-        }
-      }
       const sParts=[];
       if(sf.expert)sParts.push(`💡 ${sf.expert}`);
       if(sf.runner)sParts.push(`🏃 ${sf.runner}`);
@@ -526,9 +475,8 @@ function render(){
       cell.classList.add('filled');
       cell.innerHTML=`<div class="assigned" draggable="${isReturned?'false':'true'}" style="${retStyle||`background:${c.bg};border:2px solid ${c.border};color:${c.text};`}">
         <span class="store-label" style="${isReturned?'color:#aaa;':''}">${s.name}</span>
-        ${extLabel}${staffLabel}${clientLabel}${retLabel}
+        ${staffLabel}${clientLabel}${retLabel}
         <button class="remove-btn" onclick="removeCell('${k.replace(/'/g,"\\'")}',event)">✕</button>
-        ${!isReturned?`<button class="extend-btn" onclick="openExtModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)">＋</button>`:''}
         ${!isReturned?`<button class="staff-btn" onclick="openStaffModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)" title="填寫 Expert / Runner">👤</button>`:''}
         ${!isReturned?`<button class="client-btn" onclick="openClientModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)" title="填寫客人資料">👁</button>`:''}
         <button class="return-btn ${isReturned?'unreturned':''}" onclick="toggleReturn('${k.replace(/'/g,"\\'")}',event)" title="${isReturned?'取消歸還':'標記已歸還'}">
@@ -542,7 +490,7 @@ function render(){
   });
 }
 
-window.removeCell=(k,e)=>{e.stopPropagation();delete assignments[k];delete extensions[k];delete returned[k];delete staff[k];delete clients[k];render();push();};
+window.removeCell=(k,e)=>{e.stopPropagation();delete assignments[k];delete returned[k];delete staff[k];delete clients[k];render();push();};
 window.toggleReturn=(k,e)=>{e.stopPropagation();returned[k]=!returned[k];render();push();};
 
 // ── 客人資料 modal ──────────────────────────────
@@ -712,7 +660,7 @@ window.confirmStaff=()=>{
   else{delete staff[pendingStaffKey];}
   closeStaffModal();render();push();
 };
-window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};extensions={};returned={};staff={};tokens={};clients={};render();buildTokenSection();push();}};
+window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};render();buildTokenSection();push();}};
 function buildAll(){buildLegend();buildGrid();render();}
 
 // ── TOKEN 借用管理 ──────────────────────────────
@@ -793,7 +741,7 @@ function adjustToken(room,delta){
   buildTokenSection();push();
 }
 
-// 每3秒更新時段倒數標籤 + 格子內延長剩餘時間
+// 每3秒更新時段倒數標籤
 setInterval(()=>{updateSlotLabels();render();},3000);
 // 初始化 TOKEN 區域
 buildTokenSection();
@@ -802,18 +750,18 @@ buildTokenSection();
 window.exportExcel=function(){
   const today=new Date();
   const dateStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  const todayData={slots:SLOTS,rooms:ROOMS,stores:STORES,assignments,staff,extensions,returned,savedAt:new Date().toISOString()};
+  const todayData={slots:SLOTS,rooms:ROOMS,stores:STORES,assignments,staff,returned,clients,savedAt:new Date().toISOString()};
   if(typeof XLSX==='undefined'){alert('報表套件載入中，請稍後再試');return;}
   set(ref(db,`history/${dateStr}`),todayData).then(()=>{
     get(ref(db,'history')).then(snap=>{
       const history=snap.val()||{};
       const wb=XLSX.utils.book_new();
       const dates=Object.keys(history).sort();
-      const rows=[['日期','時段','包廂','店鋪','客人ID','客人姓名','Segment','Expert','Runner','CA','延長(分鐘)','已歸還']];
+      const rows=[['日期','時段','包廂','店鋪','客人ID','客人姓名','Segment','Expert','Runner','CA','已歸還']];
       dates.forEach(date=>{
         const d=history[date];if(!d)return;
         const slotList=d.slots||[],roomList=d.rooms||[],storeList=d.stores||[];
-        const asgn=d.assignments||{},sfData=d.staff||{},extData=d.extensions||{},retData=d.returned||{};
+        const asgn=d.assignments||{},sfData=d.staff||{},retData=d.returned||{};
         let dateShown=false;
         slotList.forEach(slot=>{
           let slotShown=false;
@@ -823,9 +771,8 @@ window.exportExcel=function(){
             const s=storeList.find(x=>x.id===sid);
             const sfInfo=sfData[k]||{};
             const clInfo=(d.clients||{})[k]||{};
-            const extMins=extData[k]||0;
             const retVal=retData[k]?'✓':'';
-            rows.push([dateShown?'':date,slotShown?'':slot,room,s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.expert||'',sfInfo.runner||'',sfInfo.ca||'',extMins>0?extMins:'',retVal]);
+            rows.push([dateShown?'':date,slotShown?'':slot,room,s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.expert||'',sfInfo.runner||'',sfInfo.ca||'',retVal]);
             dateShown=true;slotShown=true;
           });
         });
@@ -833,7 +780,7 @@ window.exportExcel=function(){
       });
       if(rows.length<=1){alert('尚無資料可匯出');return;}
       const ws=XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols']=[{wch:12},{wch:18},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:10},{wch:8}];
+      ws['!cols']=[{wch:12},{wch:18},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:8}];
       ws['!freeze']={xSplit:0,ySplit:1};
       XLSX.utils.book_append_sheet(wb,ws,'VIP Salon 全期紀錄');
       XLSX.writeFile(wb,'VIP_Salon_全期報表.xlsx');
