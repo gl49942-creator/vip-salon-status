@@ -37,6 +37,8 @@ h1{font-size:28px;font-weight:600;margin-bottom:6px;letter-spacing:.5px;}
 .actions{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
 .action-btn{padding:9px 20px;border-radius:8px;border:1px solid #ccc;background:#fff;font-size:14px;cursor:pointer;font-family:inherit;}
 .action-btn:hover{background:#f0f0f0;}
+.btn-export{background:#1F2D45;color:#fff;border-color:#1F2D45;}
+.btn-export:hover{background:#2a3d5c;}
 .tip{font-size:12px;color:#aaa;margin-bottom:14px;}
 
 /* Grid */
@@ -136,6 +138,7 @@ tbody td:last-child{border-right:none;}
 <p class="tip">拖拉店鋪至格子分配；✕ 移除；＋ 延長時間</p>
 <div class="actions">
   <button class="action-btn" onclick="clearAll()">全部清除</button>
+  <button class="action-btn btn-export" onclick="exportExcel()">📥 匯出報表</button>
 </div>
 <div class="grid-wrap"><table id="grid"></table></div>
 
@@ -192,7 +195,7 @@ tbody td:last-child{border-right:none;}
 
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import{getDatabase,ref,set,onValue}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import{getDatabase,ref,set,onValue,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 const app=initializeApp({apiKey:"AIzaSyB4ywZ1LfnE8M2XT41yrCxl4_a-jYdwQn8",authDomain:"vip-room-scheduler.firebaseapp.com",databaseURL:"https://vip-room-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"vip-room-scheduler",storageBucket:"vip-room-scheduler.firebasestorage.app",messagingSenderId:"1064515548287",appId:"1:1064515548287:web:11f5ab1537cbc60371bb4a"});
 const db=getDatabase(app),dbRef=ref(db,'scheduler');
 // 偵測連線狀態
@@ -598,6 +601,78 @@ function adjustToken(room,delta){
 setInterval(()=>{updateSlotLabels();render();},3000);
 // 初始化 TOKEN 區域
 buildTokenSection();
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+function exportExcel(){
+  const today=new Date();
+  const dateStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+
+  // 先把今天的資料存進 Firebase history
+  const todayData={slots:SLOTS,rooms:ROOMS,stores:STORES,assignments,staff,extensions,returned,savedAt:new Date().toISOString()};
+  set(ref(db,`history/${dateStr}`),todayData).then(()=>{
+    get(ref(db,'history')).then(snap=>{
+      const history=snap.val()||{};
+      const wb=XLSX.utils.book_new();
+      const dates=Object.keys(history).sort();
+
+      // 單一 Sheet，所有日期往下累積
+      const rows=[['日期','時段','包廂','店鋪','Expert','Runner','CA','延長(分鐘)','已歸還']];
+
+      dates.forEach(date=>{
+        const d=history[date];
+        if(!d)return;
+        const slotList=d.slots||[];
+        const roomList=d.rooms||[];
+        const storeList=d.stores||[];
+        const asgn=d.assignments||{};
+        const sfData=d.staff||{};
+        const extData=d.extensions||{};
+        const retData=d.returned||{};
+        let dateShown=false;
+
+        slotList.forEach(slot=>{
+          let slotShown=false;
+          roomList.forEach(room=>{
+            const k=`${room}||${slot}`;
+            const sid=asgn[k];
+            if(!sid)return;
+            const s=storeList.find(x=>x.id===sid);
+            const sfInfo=sfData[k]||{};
+            const extMins=extData[k]||0;
+            const retVal=retData[k]?'✓':'';
+            rows.push([
+              dateShown?'':date,
+              slotShown?'':slot,
+              room,
+              s?s.name:'',
+              sfInfo.expert||'',
+              sfInfo.runner||'',
+              sfInfo.ca||'',
+              extMins>0?extMins:'',
+              retVal
+            ]);
+            dateShown=true;
+            slotShown=true;
+          });
+        });
+        // 每天之間空一行
+        if(dateShown)rows.push([]);
+      });
+
+      if(rows.length<=1){alert('尚無資料可匯出');return;}
+
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:12},{wch:18},{wch:10},{wch:12},{wch:12},{wch:12},{wch:12},{wch:10},{wch:8}];
+      ws['!freeze']={xSplit:0,ySplit:1};
+      XLSX.utils.book_append_sheet(wb,ws,'VIP Salon 全期紀錄');
+      XLSX.writeFile(wb,'VIP_Salon_全期報表.xlsx');
+    });
+  }).catch(err=>{
+    alert('儲存失敗，請確認網路連線');
+    console.error(err);
+  });
+}
 </script>
 </body>
 </html>
