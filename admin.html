@@ -143,6 +143,7 @@ tbody td:last-child{border-right:none;}
     📂 上傳客人名單
     <input type="file" id="clientExcelInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="loadClientExcel(event)"/>
   </label>
+  <button class="action-btn" onclick="clearClientList()" style="background:#FCEBEB;border-color:#E24B4A;color:#A32D2D;">🗑 清除名單</button>
   <span id="clientListStatus" style="font-size:12px;color:#888;align-self:center;"></span>
 </div>
 <div class="grid-wrap"><table id="grid"></table></div>
@@ -225,7 +226,7 @@ tbody td:last-child{border-right:none;}
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,set,onValue,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 const app=initializeApp({apiKey:"AIzaSyB4ywZ1LfnE8M2XT41yrCxl4_a-jYdwQn8",authDomain:"vip-room-scheduler.firebaseapp.com",databaseURL:"https://vip-room-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"vip-room-scheduler",storageBucket:"vip-room-scheduler.firebasestorage.app",messagingSenderId:"1064515548287",appId:"1:1064515548287:web:11f5ab1537cbc60371bb4a"});
-const db=getDatabase(app),dbRef=ref(db,'scheduler');
+const db=getDatabase(app),dbRef=ref(db,'scheduler'),clientListRef=ref(db,'clientListData');
 // 偵測連線狀態
 onValue(ref(db,'.info/connected'),snap=>{
   if(!snap.val()){
@@ -233,6 +234,17 @@ onValue(ref(db,'.info/connected'),snap=>{
     dot.className='sync-dot';
     document.getElementById('syncStatus').textContent='連線中斷，請確認網路...';
     document.getElementById('syncStatus').style.color='#E24B4A';
+  }
+});
+
+// 讀取已儲存的客人名單
+onValue(clientListRef,snap=>{
+  const data=snap.val();
+  if(data&&Array.isArray(data)&&data.length>0){
+    clientList=data;
+    updateSegmentDropdown([...new Set(clientList.map(c=>c.segment).filter(Boolean))].sort());
+    document.getElementById('clientListStatus').textContent=`✓ 已載入 ${clientList.length} 位客人`;
+    document.getElementById('clientListStatus').style.color='#085041';
   }
 });
 
@@ -633,12 +645,13 @@ window.loadClientExcel=(e)=>{
         return{id,name,segment,ca};
       }).filter(c=>c&&c.id);
 
-      // 更新 Segment 下拉選單
-      const segments=[...new Set(clientList.map(c=>c.segment).filter(Boolean))].sort();
-      updateSegmentDropdown(segments);
-
-      document.getElementById('clientListStatus').textContent=`✓ 已載入 ${clientList.length} 位客人`;
-      document.getElementById('clientListStatus').style.color='#085041';
+      // 存進 Firebase
+      set(clientListRef,clientList).then(()=>{
+        const segments=[...new Set(clientList.map(c=>c.segment).filter(Boolean))].sort();
+        updateSegmentDropdown(segments);
+        document.getElementById('clientListStatus').textContent=`✓ 已載入 ${clientList.length} 位客人（已同步）`;
+        document.getElementById('clientListStatus').style.color='#085041';
+      });
     }catch(err){alert('讀取失敗，請確認檔案格式');console.error(err);}
   };
   reader.readAsArrayBuffer(file);
@@ -667,6 +680,14 @@ window.confirmStaff=()=>{
   if(expert||runner||ca){staff[pendingStaffKey]={expert,runner,ca};}
   else{delete staff[pendingStaffKey];}
   closeStaffModal();render();push();
+};
+window.clearClientList=()=>{
+  if(!confirm('確定要清除所有客人名單嗎？'))return;
+  clientList=[];
+  set(clientListRef,null);
+  document.getElementById('clientListStatus').textContent='已清除客人名單';
+  document.getElementById('clientListStatus').style.color='#888';
+  updateSegmentDropdown([]);
 };
 window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};render();buildTokenSection();push();}};
 function buildAll(){buildLegend();buildGrid();render();}
