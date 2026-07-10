@@ -72,7 +72,7 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   .assigned{padding:5px 7px;border-radius:8px;font-size:12px;font-weight:700;width:100%;text-align:center;line-height:1.3;display:flex;flex-direction:column;align-items:center;gap:2px;}
   .ext-label{font-size:10px;font-weight:600;padding:1px 5px;border-radius:6px;background:rgba(24,95,165,.15);color:#185FA5;}
   .done-label{font-size:10px;font-weight:500;padding:1px 5px;border-radius:6px;background:#e0e0e0;color:#888;}
-  .staff-label{font-size:10px;font-weight:500;padding:1px 5px;border-radius:6px;background:rgba(0,0,0,.08);color:inherit;display:block;margin-top:1px;white-space:normal;word-break:break-all;}
+  .staff-label{font-size:10px;font-weight:500;padding:2px 5px;border-radius:6px;background:rgba(0,0,0,.08);color:inherit;display:block;margin-top:2px;line-height:1.6;text-align:left;}
 }
 
 /* ── MOBILE (<768px) ── */
@@ -498,8 +498,11 @@ function buildTable(){
           :ext>0&&rst==='overtime'?`<span class="ext-label">申請延長${ext}分鐘（已到期）</span>`:'';
         const retTxt=isRet?`<span class="done-label">已歸還</span>`:'';
         const sf=staff[k]||{};
-        const staffTxt=sf.expert||sf.runner||sf.ca
-          ?`<span class="staff-label">💡 ${sf.expert||'—'} / 🏃 ${sf.runner||'—'} / 🧑‍💼 ${sf.ca||'—'}</span>`:'';
+        const staffParts=[];
+        if(sf.expert)staffParts.push(`💡 ${sf.expert}`);
+        if(sf.runner)staffParts.push(`🏃 ${sf.runner}`);
+        if(sf.ca)staffParts.push(`🧑‍💼 ${sf.ca}`);
+        const staffTxt=staffParts.length>0?`<span class="staff-label">${staffParts.join('<br>')}</span>`:'';
         const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${c.bg};border:2px solid ${c.border};color:${c.text};`;
         const cellClass=isRet?'cell filled cell-done':isExtActive?'cell filled':cellCls(rst,true);
         h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}"><div class="assigned" style="${retStyle}">${s?s.name:''}${extTxt}${staffTxt}${retTxt}</div></div></td>`;
@@ -588,8 +591,11 @@ function buildCards(){
             :ext>0&&rst==='overtime'?`<span class="ext-lbl-m">申請延長${ext}分鐘（已到期）</span>`:'';
           const retTxt=isRet?`<span class="done-lbl-m">已歸還</span>`:'';
           const sf=staff[k]||{};
-          const staffTxt=sf.expert||sf.runner||sf.ca
-            ?`<span class="done-lbl-m">💡 ${sf.expert||'—'} / 🏃 ${sf.runner||'—'} / 🧑‍💼 ${sf.ca||'—'}</span>`:'';
+          const staffParts2=[];
+          if(sf.expert)staffParts2.push(`💡 ${sf.expert}`);
+          if(sf.runner)staffParts2.push(`🏃 ${sf.runner}`);
+          if(sf.ca)staffParts2.push(`🧑‍💼 ${sf.ca}`);
+          const staffTxt=staffParts2.length>0?`<span class="done-lbl-m">${staffParts2.join('<br>')}</span>`:'';
           const cellStyle=isRet?'opacity:.5;background:#f5f5f5;border:1px solid #e0e0e0;':`background:${c.bg};border:1.5px solid ${c.border};`;
           const nameColor=isRet?'color:#aaa;':`color:${c.text};`;
           html+=`<div class="${rCls}" style="${cellStyle}"><span class="room-lbl" style="${nameColor}opacity:.7;">${room}</span><span class="store-nm" style="${nameColor}">${s?s.name:''}</span>${extTxt}${staffTxt}${retTxt}</div>`;

@@ -82,7 +82,7 @@ tbody td:last-child{border-right:none;}
 .cell:hover .return-btn,.assigned:hover .return-btn,
 .cell:hover .staff-btn,.assigned:hover .staff-btn{opacity:1;}
 .ret-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:6px;background:#e0e0e0;color:#888;}
-.staff-badge{font-size:10px;font-weight:500;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.08);color:inherit;display:block;margin-top:1px;}
+.staff-badge{font-size:10px;font-weight:500;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.08);color:inherit;display:block;margin-top:2px;line-height:1.6;text-align:left;}
 
 .token-card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 14px;min-width:160px;display:flex;flex-direction:column;gap:6px;}
 .token-room{font-size:13px;font-weight:600;color:#2C3E6B;}
@@ -468,8 +468,11 @@ function render(){
           }
         }
       }
-      const staffLabel=sf.expert||sf.runner||sf.ca
-        ?`<span class="staff-badge">💡 ${sf.expert||'—'} / 🏃 ${sf.runner||'—'} / 🧑‍💼 ${sf.ca||'—'}</span>`:'';
+      const sParts=[];
+      if(sf.expert)sParts.push(`💡 ${sf.expert}`);
+      if(sf.runner)sParts.push(`🏃 ${sf.runner}`);
+      if(sf.ca)sParts.push(`🧑‍💼 ${sf.ca}`);
+      const staffLabel=sParts.length>0?`<span class="staff-badge">${sParts.join('<br>')}</span>`:'';
       const retLabel=isReturned?`<span class="ret-badge">已歸還</span>`:'';
       const retStyle=isReturned?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
       cell.classList.add('filled');
