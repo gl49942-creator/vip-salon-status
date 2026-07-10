@@ -69,11 +69,12 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   .cell.cell-w15{border:1.5px solid #E24B4A;background:#fff0f0;animation:flashSlow 1.2s infinite;}
   .cell.cell-w30{border:1.5px solid #BA7517;background:#fff9ee;animation:flashMed 1.8s infinite;}
   .cell.cell-done{border:1px solid #e0e0e0;background:#f5f5f5;}
-  .assigned{padding:7px 8px;border-radius:8px;font-size:13px;font-weight:700;width:100%;text-align:left;line-height:1.4;display:flex;flex-direction:column;gap:2px;}
-  .store-name-lbl{font-size:13px;font-weight:700;display:block;}
-  .done-label{font-size:10px;font-weight:500;padding:1px 5px;border-radius:6px;background:#e0e0e0;color:#888;align-self:flex-start;}
-  .staff-label{font-size:10px;opacity:.8;display:block;line-height:1.5;word-break:break-word;}
-  .client-label{font-size:10px;font-weight:600;padding:2px 5px;border-radius:5px;background:rgba(83,74,183,.15);color:#3C3489;display:block;line-height:1.5;word-break:break-word;}
+  .assigned{padding:7px 8px;border-radius:8px;width:100%;display:flex;flex-direction:column;gap:2px;}
+  .store-name-lbl{font-size:13px;font-weight:700;display:block;margin-bottom:1px;}
+  .staff-line{font-size:10px;opacity:.85;display:block;line-height:1.6;}
+  .cell-divider{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 0;}
+  .client-line{font-size:10px;font-weight:500;display:block;line-height:1.6;color:#3C3489;}
+  .done-label{font-size:10px;font-weight:500;padding:1px 5px;border-radius:6px;background:#e0e0e0;color:#888;align-self:flex-start;margin-top:2px;}
 }
 
 /* ── MOBILE (<768px) ── */
@@ -96,9 +97,10 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   .room-cell.cell-done{border:1px solid #e0e0e0;background:#f5f5f5;}
   .room-lbl{font-size:10px;font-weight:600;color:#aaa;padding:5px 8px 0;letter-spacing:.3px;}
   .store-nm{font-size:13px;font-weight:700;padding:1px 8px;line-height:1.3;}
-  .staff-lbl-m{font-size:10px;padding:0 8px;opacity:.85;line-height:1.5;display:block;}
-  .client-lbl-m{font-size:10px;font-weight:600;padding:2px 8px 5px;color:#3C3489;display:block;line-height:1.4;}
-  .done-lbl-m{font-size:10px;font-weight:500;padding:0px 8px 5px;color:#888;}
+  .staff-lbl-m{font-size:10px;padding:0 8px;opacity:.85;line-height:1.6;display:block;}
+  .cell-divider-m{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 8px;}
+  .client-lbl-m{font-size:10px;font-weight:500;padding:0 8px;color:#3C3489;display:block;line-height:1.6;}
+  .done-lbl-m{font-size:10px;font-weight:500;padding:2px 8px 5px;color:#888;}
   .room-empty{display:flex;align-items:center;justify-content:center;height:70px;color:#ddd;font-size:11px;}
 }
 </style>
@@ -481,14 +483,19 @@ function buildTable(){
         const rst=roomStatus(slot,k);
         const isRet=returned[k]||false;
         const sf=staff[k]||{};
-        const staffParts=[];
-        if(sf.expert)staffParts.push(`💡 ${sf.expert}`);
-        if(sf.runner)staffParts.push(`🏃 ${sf.runner}`);
-        if(sf.ca)staffParts.push(`🧑‍💼 ${sf.ca}`);
-        const staffTxt=staffParts.length>0?`<span class="staff-label">${staffParts.join(' · ')}</span>`:'';
+        const staffLines=[];
+        if(sf.expert)staffLines.push(`<span class="staff-line">💡 ${sf.expert}</span>`);
+        if(sf.runner)staffLines.push(`<span class="staff-line">🏃 ${sf.runner}</span>`);
+        if(sf.ca)staffLines.push(`<span class="staff-line">🧑‍💼 ${sf.ca}</span>`);
+        const staffTxt=staffLines.join('');
         const cl=clients[k]||{};
-        const clientLine=[cl.clientId,cl.clientName,cl.segment].filter(Boolean).join(' · ');
-        const clientTxt=clientLine?`<span class="client-label">👁 ${clientLine}</span>`:'';
+        const hasClient=cl.clientId||cl.clientName||cl.segment;
+        const clientTxt=hasClient?`
+          <hr class="cell-divider"/>
+          ${cl.clientId?`<span class="client-line">ID: ${cl.clientId}</span>`:''}
+          ${cl.clientName?`<span class="client-line">Name: ${cl.clientName}</span>`:''}
+          ${cl.segment?`<span class="client-line">Seg: ${cl.segment}</span>`:''}
+        `:'';
         const retTxt=isRet?`<span class="done-label">已歸還</span>`:'';
         const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${c.bg};border:2px solid ${c.border};color:${c.text};`;
         const cellClass=isRet?'cell filled cell-done':cellCls(rst,true);
@@ -557,14 +564,14 @@ function buildCards(){
           else if(rst==='warn30')rCls+=' cell-w30';
           const retTxt=isRet?`<span class="done-lbl-m">已歸還</span>`:'';
           const sf=staff[k]||{};
-          const staffParts2=[];
-          if(sf.expert)staffParts2.push(`💡 ${sf.expert}`);
-          if(sf.runner)staffParts2.push(`🏃 ${sf.runner}`);
-          if(sf.ca)staffParts2.push(`🧑‍💼 ${sf.ca}`);
-          const staffTxt=staffParts2.length>0?`<span class="staff-lbl-m">${staffParts2.join(' · ')}</span>`:'';
+          const staffLines2=[];
+          if(sf.expert)staffLines2.push(`<span class="staff-lbl-m">💡 ${sf.expert}</span>`);
+          if(sf.runner)staffLines2.push(`<span class="staff-lbl-m">🏃 ${sf.runner}</span>`);
+          if(sf.ca)staffLines2.push(`<span class="staff-lbl-m">🧑‍💼 ${sf.ca}</span>`);
+          const staffTxt=staffLines2.join('');
           const cl=clients[k]||{};
-          const clientLine=[cl.clientId,cl.clientName,cl.segment].filter(Boolean).join(' · ');
-          const clientTxt=clientLine?`<span class="client-lbl-m">👁 ${clientLine}</span>`:'';
+          const hasClient=cl.clientId||cl.clientName||cl.segment;
+          const clientTxt=hasClient?`<hr class="cell-divider-m"/>${cl.clientId?`<span class="client-lbl-m">ID: ${cl.clientId}</span>`:''} ${cl.clientName?`<span class="client-lbl-m">Name: ${cl.clientName}</span>`:''} ${cl.segment?`<span class="client-lbl-m">Seg: ${cl.segment}</span>`:''}`:'';
           const cellStyle=isRet?'opacity:.5;background:#f5f5f5;border:1px solid #e0e0e0;':`background:${c.bg};border:1.5px solid ${c.border};`;
           const nameColor=isRet?'color:#aaa;':`color:${c.text};`;
           html+=`<div class="${rCls}" style="${cellStyle}"><span class="room-lbl" style="${nameColor}opacity:.7;">${room}</span><span class="store-nm" style="${nameColor}">${s?s.name:''}</span>${staffTxt}${clientTxt}${retTxt}</div>`;

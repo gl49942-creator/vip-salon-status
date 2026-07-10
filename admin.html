@@ -80,8 +80,9 @@ tbody td:last-child{border-right:none;}
 .cell:hover .staff-btn,.assigned:hover .staff-btn,
 .cell:hover .client-btn,.assigned:hover .client-btn{opacity:1;}
 .ret-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:6px;background:#e0e0e0;color:#888;}
-.staff-badge{font-size:10px;font-weight:500;padding:2px 6px;border-radius:6px;background:rgba(0,0,0,.08);color:inherit;display:block;margin-top:2px;line-height:1.6;text-align:left;}
-.client-badge{font-size:10px;font-weight:500;padding:2px 6px;border-radius:6px;background:rgba(83,74,183,.12);color:#3C3489;display:block;margin-top:2px;line-height:1.6;text-align:left;}
+.staff-badge{font-size:10px;font-weight:500;display:block;margin-top:1px;line-height:1.6;text-align:left;}
+.cell-divider-a{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 0;}
+.client-badge{font-size:10px;font-weight:500;color:#3C3489;display:block;line-height:1.6;text-align:left;}
 
 .token-card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 14px;min-width:160px;display:flex;flex-direction:column;gap:6px;}
 .token-room{font-size:13px;font-weight:600;color:#2C3E6B;}
@@ -467,11 +468,12 @@ function render(){
       const sf=staff[k]||{};
       const cl=clients[k]||{};
       const sParts=[];
-      if(sf.expert)sParts.push(`💡 ${sf.expert}`);
-      if(sf.runner)sParts.push(`🏃 ${sf.runner}`);
-      if(sf.ca)sParts.push(`🧑‍💼 ${sf.ca}`);
-      const staffLabel=sParts.length>0?`<span class="staff-badge">${sParts.join('<br>')}</span>`:'';
-      const clientLabel=cl.clientId||cl.clientName?`<span class="client-badge">👁 ${cl.clientId||''}${cl.clientName?' '+cl.clientName:''}${cl.segment?' · '+cl.segment:''}</span>`:'';
+      if(sf.expert)sParts.push(`<span class="staff-badge">💡 ${sf.expert}</span>`);
+      if(sf.runner)sParts.push(`<span class="staff-badge">🏃 ${sf.runner}</span>`);
+      if(sf.ca)sParts.push(`<span class="staff-badge">🧑‍💼 ${sf.ca}</span>`);
+      const staffLabel=sParts.join('');
+      const hasClient=cl.clientId||cl.clientName||cl.segment;
+      const clientLabel=hasClient?`<hr class="cell-divider-a"/>${cl.clientId?`<span class="client-badge">ID: ${cl.clientId}</span>`:''} ${cl.clientName?`<span class="client-badge">Name: ${cl.clientName}</span>`:''} ${cl.segment?`<span class="client-badge">Seg: ${cl.segment}</span>`:''}`:'';
       const retLabel=isReturned?`<span class="ret-badge">已歸還</span>`:'';
       const retStyle=isReturned?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
       cell.classList.add('filled');
