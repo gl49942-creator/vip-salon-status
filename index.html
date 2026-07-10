@@ -141,7 +141,7 @@ onValue(ref(db,'.info/connected'),snap=>{
   const connected=snap.val();
   const dot=document.getElementById('syncDot');
   const txt=document.getElementById('syncStatus');
-  if(connected){dot.className='sync-dot connected';txt.textContent='即時同步中';}
+  if(connected){dot.className='sync-dot connected';txt.style.color='';txt.textContent='即時同步中';}
   else{dot.className='sync-dot';txt.style.color='#E24B4A';txt.textContent='連線中斷，請確認網路...';}
 });
 
@@ -610,6 +610,10 @@ function updateCellStyles(){
 function lightTick(){updateAlert();updateClock();updateSlotLabels();buildCards();updateCellStyles();buildTokenDisplay();}
 
 onValue(dbRef,snap=>{
+  // 資料收到代表連線正常
+  document.getElementById('syncDot').className='sync-dot connected';
+  document.getElementById('syncStatus').style.color='';
+  document.getElementById('syncStatus').textContent='即時同步中';
   const d=snap.val();
   if(!d){document.getElementById('emptyNotice').style.display='block';return;}
   if(d.slots?.length)SLOTS=d.slots;
