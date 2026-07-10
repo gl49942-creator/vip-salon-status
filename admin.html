@@ -50,7 +50,7 @@ thead th:last-child{border-right:none;}
 tbody tr{border-bottom:1px solid #e0e0e0;}
 tbody tr:last-child{border-bottom:none;}
 tbody tr:nth-child(even){background:#fafafa;}
-tbody td{border-right:1px solid #e8e8e8;padding:5px;vertical-align:top;height:155px;}
+tbody td{border-right:1px solid #e8e8e8;padding:5px;vertical-align:top;}
 tbody td:first-child{padding:8px 14px;background:#EEF1F8;text-align:center;vertical-align:middle;white-space:nowrap;border-right:2px solid #c8cfe0;width:150px;}
 tbody td:last-child{border-right:none;}
 .slot-label{display:flex;flex-direction:column;align-items:center;gap:4px;}
@@ -65,7 +65,7 @@ tbody td:last-child{border-right:none;}
 @keyframes flashFast{0%,100%{opacity:1;}50%{opacity:.4;}}
 @keyframes flashSlow{0%,100%{opacity:1;}50%{opacity:.55;}}
 @keyframes flashMed{0%,100%{opacity:1;}50%{opacity:.65;}}
-.cell{min-height:143px;border-radius:10px;border:1.5px dashed #ddd;display:flex;align-items:center;justify-content:center;font-size:12px;color:#bbb;transition:background 0.15s;position:relative;}
+.cell{min-height:100px;border-radius:10px;border:1.5px dashed #ddd;display:flex;align-items:center;justify-content:center;font-size:12px;color:#bbb;transition:background 0.15s;position:relative;}
 .cell.drag-over{background:#e8f0fb;border-color:#378add;border-style:solid;}
 .cell.filled{border-style:solid;border-color:transparent;}
 .assigned{padding:5px 7px;border-radius:8px;font-size:12px;font-weight:600;width:100%;text-align:center;cursor:grab;position:relative;line-height:1.3;display:flex;flex-direction:column;align-items:center;gap:2px;}
@@ -551,22 +551,26 @@ window.confirmClient=()=>{
   closeClientModal();render();push();
 };
 
-// ID 搜尋自動帶出
-document.getElementById('clientIdInput').addEventListener('input',function(){
-  const q=this.value.trim().toLowerCase();
-  const box=document.getElementById('clientSuggestions');
-  if(!q||clientList.length===0){box.style.display='none';return;}
-  const matches=clientList.filter(c=>
-    c.id.toLowerCase().includes(q)||
-    c.name.toLowerCase().includes(q)
-  ).slice(0,8);
-  if(!matches.length){box.style.display='none';return;}
-  box.innerHTML=matches.map(c=>`<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #eee;line-height:1.5;" onmousedown="selectClient('${c.id.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}','${c.segment.replace(/'/g,"\\'")}','${(c.ca||'').replace(/'/g,"\\'")}')">
+// ID 搜尋自動帶出 - 等 DOM 完全載入後再綁定
+window.addEventListener('DOMContentLoaded',()=>{
+  const inputEl=document.getElementById('clientIdInput');
+  if(!inputEl)return;
+  inputEl.addEventListener('input',function(){
+    const q=this.value.trim().toLowerCase();
+    const box=document.getElementById('clientSuggestions');
+    if(!q||clientList.length===0){box.style.display='none';return;}
+    const matches=clientList.filter(c=>
+      c.id.toLowerCase().includes(q)||
+      c.name.toLowerCase().includes(q)
+    ).slice(0,8);
+    if(!matches.length){box.style.display='none';return;}
+    box.innerHTML=matches.map(c=>`<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #eee;line-height:1.5;" onmousedown="selectClient('${c.id.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}','${c.segment.replace(/'/g,"\\'")}','${(c.ca||'').replace(/'/g,"\\'")}')">
     <strong>${c.id}</strong> ${c.name}
     <span style="color:#534AB7;font-size:11px;margin-left:6px;">${c.segment}</span>
     ${c.ca?`<span style="color:#888;font-size:11px;margin-left:6px;">CA: ${c.ca}</span>`:''}
   </div>`).join('');
-  box.style.display='block';
+    box.style.display='block';
+  });
 });
 window.selectClient=(id,name,segment,ca)=>{
   document.getElementById('clientIdInput').value=id;
