@@ -82,8 +82,18 @@ tbody td:last-child{border-right:none;}
 .ret-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:6px;background:#e0e0e0;color:#888;}
 .staff-badge{font-size:10px;font-weight:500;padding:1px 6px;border-radius:6px;background:rgba(0,0,0,.08);color:inherit;display:block;margin-top:1px;}
 
-/* Extend modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:1000;display:none;}
+.token-card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 14px;min-width:160px;display:flex;flex-direction:column;gap:6px;}
+.token-room{font-size:13px;font-weight:600;color:#2C3E6B;}
+.token-controls{display:flex;align-items:center;gap:8px;}
+.token-btn{width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#f5f5f5;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;color:#333;flex-shrink:0;}
+.token-btn:hover{background:#e0e0e0;}
+.token-count{font-size:20px;font-weight:700;color:#1F2D45;min-width:24px;text-align:center;}
+.token-label{font-size:11px;color:#aaa;}
+.token-summary-box{padding:8px 16px;border-radius:10px;text-align:center;}
+.ts-lent{background:#FAEEDA;border:1px solid #BA7517;color:#633806;}
+.ts-remain{background:#E1F5EE;border:1px solid #0F6E56;color:#085041;}
+.ts-num{font-size:20px;font-weight:700;display:block;}
+.ts-lbl{font-size:11px;}
 .modal-overlay.open{display:flex;}
 .modal{background:#fff;border-radius:14px;padding:24px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18);}
 .modal h3{font-size:16px;font-weight:600;margin-bottom:6px;}
@@ -128,6 +138,18 @@ tbody td:last-child{border-right:none;}
 </div>
 <div class="grid-wrap"><table id="grid"></table></div>
 
+<!-- TOKEN 借用管理 -->
+<div style="margin-top:32px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <div>
+      <div style="font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:2px;">🎫 13號備用TOKEN 借用管理</div>
+      <div style="font-size:13px;color:#888;">總數量：5 顆</div>
+    </div>
+    <div id="tokenSummary" style="display:flex;gap:12px;"></div>
+  </div>
+  <div id="tokenGrid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+</div>
+
 <!-- Extend modal -->
 <div class="modal-overlay" id="extModal">
   <div class="modal">
@@ -152,9 +174,13 @@ tbody td:last-child{border-right:none;}
       <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">Expert</label>
       <input id="expertInput" type="text" placeholder="輸入 Expert 姓名" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
     </div>
-    <div style="margin-bottom:16px;">
+    <div style="margin-bottom:12px;">
       <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">Runner</label>
       <input id="runnerInput" type="text" placeholder="輸入 Runner 姓名" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">CA</label>
+      <input id="caInput" type="text" placeholder="輸入 CA 姓名" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
     </div>
     <div class="modal-btns">
       <button class="ext-opt" onclick="confirmStaff()" style="text-align:center;background:#1F2D45;color:#fff;border:none;">儲存</button>
@@ -185,7 +211,9 @@ let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'}
 let assignments={};   // {key: storeId}
 let extensions={};    // {key: extraMinutes}
 let returned={};      // {key: bool}
-let staff={};         // {key: {expert, runner}}
+let staff={};         // {key: {expert, runner, ca}}
+let tokens={};        // {roomName: count}
+const TOKEN_TOTAL=5;
 let dragStore=null,dragFrom=null,isSyncing=false;
 let pendingExtKey=null;
 
@@ -200,7 +228,7 @@ function setSyncStatus(s){
 }
 function push(){
   isSyncing=true;setSyncStatus('saving');
-  set(dbRef,{assignments,extensions,returned,staff,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;});
+  set(dbRef,{assignments,extensions,returned,staff,tokens,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
@@ -212,7 +240,8 @@ onValue(dbRef,snap=>{
   extensions=d.extensions||{};
   returned=d.returned||{};
   staff=d.staff||{};
-  setSyncStatus('connected');buildAll();
+  tokens=d.tokens||{};
+  setSyncStatus('connected');buildAll();buildTokenSection();
 });
 
 // Settings
@@ -229,10 +258,43 @@ window.removeRoom=i=>{ROOMS.splice(i,1);renderPanel();};
 window.addStore=()=>{STORES.push({id:'store_'+Date.now(),name:''});renderPanel();document.getElementById(`store-${STORES.length-1}`).focus();};
 window.removeStore=i=>{STORES.splice(i,1);renderPanel();};
 window.applySettings=()=>{
+  const oldSlots=[...SLOTS],oldRooms=[...ROOMS];
   SLOTS=Array.from(document.querySelectorAll('[id^="slot-"]')).map(el=>el.value.trim()).filter(Boolean);
   ROOMS=Array.from(document.querySelectorAll('[id^="room-"]')).map(el=>el.value.trim()).filter(Boolean);
   STORES=STORES.map((s,i)=>{const el=document.getElementById(`store-${i}`);return el?{...s,name:el.value.trim()||s.name}:s;}).filter(s=>s.name);
-  assignments={};extensions={};returned={};staff={};
+
+  // 只清除已不存在的 slot 或 room 的資料，保留有效的
+  const validKeys=new Set();
+  SLOTS.forEach(slot=>ROOMS.forEach(room=>validKeys.add(key(room,slot))));
+  [assignments,extensions,returned,staff].forEach(obj=>{
+    Object.keys(obj).forEach(k=>{if(!validKeys.has(k))delete obj[k];});
+  });
+  // TOKEN：只保留還存在的包廂
+  Object.keys(tokens).forEach(room=>{if(!ROOMS.includes(room))delete tokens[room];});
+
+  // 處理包廂改名：舊名稱→新名稱（依 index 對應）
+  const renameMap={};
+  oldRooms.forEach((oldName,i)=>{if(ROOMS[i]&&ROOMS[i]!==oldName)renameMap[oldName]=ROOMS[i];});
+  if(Object.keys(renameMap).length>0){
+    [assignments,extensions,returned,staff].forEach(obj=>{
+      Object.keys(obj).forEach(k=>{
+        const[room,slot]=k.split('||');
+        if(renameMap[room]){
+          const newK=key(renameMap[room],slot);
+          obj[newK]=obj[k];
+          delete obj[k];
+        }
+      });
+    });
+    // TOKEN 改名
+    Object.keys(renameMap).forEach(oldName=>{
+      if(tokens[oldName]!==undefined){
+        tokens[renameMap[oldName]]=tokens[oldName];
+        delete tokens[oldName];
+      }
+    });
+  }
+
   document.getElementById('settingsPanel').classList.remove('open');
   buildAll();push();
 };
@@ -402,8 +464,8 @@ function render(){
           }
         }
       }
-      const staffLabel=sf.expert||sf.runner
-        ?`<span class="staff-badge">👤 ${sf.expert||'—'} / 🏃 ${sf.runner||'—'}</span>`:'';
+      const staffLabel=sf.expert||sf.runner||sf.ca
+        ?`<span class="staff-badge">💡 ${sf.expert||'—'} / 🏃 ${sf.runner||'—'} / 🧑‍💼 ${sf.ca||'—'}</span>`:'';
       const retLabel=isReturned?`<span class="ret-badge">已歸還</span>`:'';
       const retStyle=isReturned?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
       cell.classList.add('filled');
@@ -436,6 +498,7 @@ window.openStaffModal=(k,storeName,slot,e)=>{
   const sf=staff[k]||{};
   document.getElementById('expertInput').value=sf.expert||'';
   document.getElementById('runnerInput').value=sf.runner||'';
+  document.getElementById('caInput').value=sf.ca||'';
   document.getElementById('staffModal').classList.add('open');
   setTimeout(()=>document.getElementById('expertInput').focus(),100);
 };
@@ -444,12 +507,50 @@ window.confirmStaff=()=>{
   if(!pendingStaffKey)return;
   const expert=document.getElementById('expertInput').value.trim();
   const runner=document.getElementById('runnerInput').value.trim();
-  if(expert||runner){staff[pendingStaffKey]={expert,runner};}
+  const ca=document.getElementById('caInput').value.trim();
+  if(expert||runner||ca){staff[pendingStaffKey]={expert,runner,ca};}
   else{delete staff[pendingStaffKey];}
   closeStaffModal();render();push();
 };
-window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};extensions={};returned={};staff={};render();push();}};
+window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};extensions={};returned={};staff={};tokens={};render();buildTokenSection();push();}};
 function buildAll(){buildLegend();buildGrid();render();}
+
+// ── TOKEN 借用管理 ──────────────────────────────
+function totalLent(){return Object.values(tokens).reduce((s,v)=>s+(v||0),0);}
+function buildTokenSection(){
+  const lent=totalLent();
+  const remain=TOKEN_TOTAL-lent;
+  document.getElementById('tokenSummary').innerHTML=`
+    <div class="token-summary-box ts-lent"><span class="ts-num">${lent}</span><span class="ts-lbl">已借出</span></div>
+    `;
+  const grid=document.getElementById('tokenGrid');
+  grid.innerHTML='';
+  ROOMS.forEach(room=>{
+    const cnt=tokens[room]||0;
+    const card=document.createElement('div');
+    card.className='token-card';
+    card.innerHTML=`
+      <div class="token-room">${room}</div>
+      <div class="token-controls">
+        <button class="token-btn" onclick="adjustToken(${JSON.stringify(room)},-1)">－</button>
+        <span class="token-count">${cnt}</span>
+        <button class="token-btn" onclick="adjustToken(${JSON.stringify(room)},1)">＋</button>
+      </div>
+      <div class="token-label">${cnt>0?`已借 ${cnt} 顆`:'未借用'}</div>`;
+    grid.appendChild(card);
+  });
+}
+window.adjustToken=(room,delta)=>{
+  const cur=tokens[room]||0;
+  const lent=totalLent();
+  const next=cur+delta;
+  if(next<0)return;
+  if(delta>0&&lent>=TOKEN_TOTAL){alert('已達借用上限（5 顆）！');return;}
+  if(next===0)delete tokens[room];
+  else tokens[room]=next;
+  buildTokenSection();push();
+};
+
 // 每3秒更新時段倒數標籤 + 格子內延長剩餘時間
 setInterval(()=>{updateSlotLabels();render();},3000);
 </script>
