@@ -460,7 +460,15 @@ function buildGrid(){
     cell.addEventListener('drop',e=>{
       e.preventDefault();cell.classList.remove('drag-over');if(!dragStore)return;
       const k=key(decodeURIComponent(cell.dataset.room),decodeURIComponent(cell.dataset.slot));
-      if(dragFrom){delete assignments[dragFrom];delete returned[dragFrom];}
+      if(dragFrom&&dragFrom!==k){
+        // 把原本格子的所有資訊帶到新位置
+        if(staff[dragFrom])  {staff[k]=staff[dragFrom];  delete staff[dragFrom];}  else delete staff[k];
+        if(clients[dragFrom]){clients[k]=clients[dragFrom];delete clients[dragFrom];}else delete clients[k];
+        // 歸還狀態不帶過去（新位置視為未歸還）
+        delete returned[dragFrom];
+        delete returned[k];
+        delete assignments[dragFrom];
+      }
       assignments[k]=dragStore;dragStore=null;dragFrom=null;render();push();
     });
   });
