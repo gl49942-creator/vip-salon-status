@@ -275,7 +275,7 @@ function occupiedRooms(slot){
       const rst=roomStatus(slot,k);
       if(rst!=='overtime'&&rst!=='warn15'&&rst!=='warn30'){
         const s=STORES.find(x=>x.id===sid);
-        if(s)res.push({room,k,sid,name:s.name,ext});
+        if(s)res.push({room,k,sid,name:s.name});
       }
     }
   });
@@ -624,8 +624,6 @@ onValue(dbRef,snap=>{
   document.getElementById('syncStatus').style.color='';
   document.getElementById('syncStatus').textContent='即時同步中';
   const d=snap.val();
-  console.log('Firebase data keys:', d?Object.keys(d):[]);
-  console.log('tokens:', JSON.stringify(d?.tokens));
   if(!d){document.getElementById('emptyNotice').style.display='block';return;}
   if(d.slots?.length)SLOTS=d.slots;
   if(d.rooms?.length)ROOMS=d.rooms;
