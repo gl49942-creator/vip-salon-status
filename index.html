@@ -338,20 +338,27 @@ function cellCls(st,hasStore){
 
 function updateAlert(){
   const banner=document.getElementById('alertBanner');
-  // Find worst occupied room across all slots
   let worst=null;
   const order=['overtime','warn15','warn30'];
   SLOTS.forEach(slot=>{
-    occupiedRooms(slot).forEach(({k,name,ext})=>{
+    occupiedRooms(slot).forEach(({k,name})=>{
       const st=roomStatus(slot,k);
       if(!order.includes(st))return;
+      // 計算剩餘分鐘
+      const p=parseSlot(slot);
+      let mins=0;
+      if(p){
+        const now=new Date();
+        const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+        const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
+        mins=Math.round((endMs-now.getTime())/60000);
+      }
       if(!worst||order.indexOf(st)<order.indexOf(worst.st))
-        worst={slot,st};
+        worst={slot,st,mins};
     });
   });
   if(!worst){banner.className='alert';return;}
 
-  // Collect store names for that slot's alarming rooms
   const alarmingNames=[...new Set(
     occupiedRooms(worst.slot)
       .filter(({k})=>order.includes(roomStatus(worst.slot,k)))
