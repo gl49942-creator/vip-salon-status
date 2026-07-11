@@ -691,8 +691,9 @@ function buildTokenSection(){
   const grid=document.getElementById('tokenGrid');
   grid.innerHTML='';
   ROOMS.forEach(room=>{
-    const cnt=tokens[room]||0;
-    const borrower=tokens[room+'__borrower__']||'';
+    const k=safeKey(room);
+    const cnt=tokens[k]||0;
+    const borrower=tokens[k+'__borrower__']||'';
     const card=document.createElement('div');
     card.className='token-card';
     card.innerHTML=`
@@ -747,8 +748,8 @@ function buildTokenSection(){
     input.addEventListener('change',()=>{
       const room=input.dataset.borrowerRoom;
       const val=input.value.trim();
-      if(val)tokens[room+'__borrower__']=val;
-      else delete tokens[room+'__borrower__'];
+      if(val)tokens[safeKey(room)+'__borrower__']=val;
+      else delete tokens[safeKey(room)+'__borrower__'];
       push();
     });
   });
@@ -762,8 +763,9 @@ function buildTokenSection(){
     adjustToken(room,delta);
   };
 }
+function safeKey(room){return room.replace(/[.#$/[\]\s]/g,'_');}
 function adjustToken(room,delta){
-  const key=room==='__other__'?'__other_count__':room;
+  const key=room==='__other__'?'__other_count__':safeKey(room);
   const cur=tokens[key]||0;
   const lent=totalLent();
   const next=cur+delta;

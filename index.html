@@ -638,13 +638,11 @@ onValue(dbRef,snap=>{
 });
 
 function buildTokenDisplay(){
-  console.log('buildTokenDisplay called, tokens:', JSON.stringify(tokens));
   // 計算借出數量（排除所有 string 類型的值）
   const lent=Object.entries(tokens).reduce((s,[k,v])=>{
     if(typeof v!=='number')return s;
     return s+v;
   },0);
-  console.log('lent:', lent);
   const hasAny=lent>0;
   const display=document.getElementById('tokenDisplay');
   display.style.display=hasAny?'block':'none';
@@ -656,16 +654,27 @@ function buildTokenDisplay(){
     </div>`;
   const grid=document.getElementById('tokenViewGrid');
   grid.innerHTML='';
-  Object.entries(tokens).forEach(([room,cnt])=>{
-    if(typeof cnt!=='number'||cnt<=0)return;
-    const isOther=room==='__other_count__';
-    const label=isOther?(tokens['__other_note__']||'其他'):room;
-    const borrower=isOther?(tokens['__other_borrower__']||''):(tokens[room+'__borrower__']||'');
+  // 先顯示各包廂（從ROOMS順序）
+  ROOMS.forEach(room=>{
+    const safeK=room.replace(/[.#$/[\]\s]/g,'_');
+    const cnt=tokens[safeK]||0;
+    if(!cnt)return;
+    const borrower=tokens[safeK+'__borrower__']||'';
     const chip=document.createElement('div');
     chip.style.cssText='padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#1a1a1a;';
-    chip.innerHTML=`${label}：<strong>${cnt} 顆</strong>${borrower?` · ${borrower}`:''}`;
+    chip.innerHTML=`${room}：<strong>${cnt} 顆</strong>${borrower?` · ${borrower}`:''}`;
     grid.appendChild(chip);
   });
+  // 顯示「其他」
+  const otherCnt=tokens['__other_count__']||0;
+  if(otherCnt>0){
+    const otherNote=tokens['__other_note__']||'其他';
+    const otherBorrower=tokens['__other_borrower__']||'';
+    const chip=document.createElement('div');
+    chip.style.cssText='padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#1a1a1a;';
+    chip.innerHTML=`${otherNote}：<strong>${otherCnt} 顆</strong>${otherBorrower?` · ${otherBorrower}`:''}`;
+    grid.appendChild(chip);
+  }
 }
 
 tick();
