@@ -483,19 +483,20 @@ function buildTable(){
         const rst=roomStatus(slot,k);
         const isRet=returned[k]||false;
         const sf=staff[k]||{};
-        const staffLines=[];
-        if(sf.expert)staffLines.push(`<span class="staff-line">💡 ${sf.expert}</span>`);
-        if(sf.runner)staffLines.push(`<span class="staff-line">🏃 ${sf.runner}</span>`);
-        if(sf.ca)staffLines.push(`<span class="staff-line">🧑‍💼 ${sf.ca}</span>`);
-        const staffTxt=staffLines.join('');
         const cl=clients[k]||{};
-        const hasClient=cl.clientId||cl.clientName||cl.segment;
-        const clientTxt=hasClient?`
-          <hr class="cell-divider"/>
-          ${cl.clientId?`<span class="client-line">ID: ${cl.clientId}</span>`:''}
-          ${cl.clientName?`<span class="client-line">Name: ${cl.clientName}</span>`:''}
-          ${cl.segment?`<span class="client-line">Seg: ${cl.segment}</span>`:''}
-        `:'';
+        const sf=staff[k]||{};
+        const clientParts=[];
+        if(cl.clientName)clientParts.push(`<span class="client-line">Name: ${cl.clientName}</span>`);
+        if(cl.segment)clientParts.push(`<span class="client-line">Seg: ${cl.segment}</span>`);
+        const staffParts3=[];
+        if(sf.ca)staffParts3.push(`<span class="staff-line">🧑‍💼 ${sf.ca}</span>`);
+        if(sf.expert)staffParts3.push(`<span class="staff-line">💡 ${sf.expert}</span>`);
+        if(sf.runner)staffParts3.push(`<span class="staff-line">🏃 ${sf.runner}</span>`);
+        const staffTxt='';
+        const hasClientD=clientParts.length>0;
+        const hasStaffD=staffParts3.length>0;
+        const clientTxt=(hasClientD||hasStaffD)?
+          `${hasClientD?clientParts.join(''):''}${hasClientD&&hasStaffD?'<hr class="cell-divider"/>':''}${staffParts3.join('')}`:'';
         const retTxt=isRet?`<span class="done-label">已歸還</span>`:'';
         const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${c.bg};border:2px solid ${c.border};color:${c.text};`;
         const cellClass=isRet?'cell filled cell-done':cellCls(rst,true);
@@ -571,7 +572,7 @@ function buildCards(){
           const staffTxt=staffLines2.join('');
           const cl=clients[k]||{};
           const hasClient=cl.clientId||cl.clientName||cl.segment;
-          const clientTxt=hasClient?`<hr class="cell-divider-m"/>${cl.clientId?`<span class="client-lbl-m">ID: ${cl.clientId}</span>`:''} ${cl.clientName?`<span class="client-lbl-m">Name: ${cl.clientName}</span>`:''} ${cl.segment?`<span class="client-lbl-m">Seg: ${cl.segment}</span>`:''}`:'';
+          const clientTxt=hasClient?`<hr class="cell-divider-m"/>${cl.clientName?`<span class="client-lbl-m">Name: ${cl.clientName}</span>`:''} ${cl.segment?`<span class="client-lbl-m">Seg: ${cl.segment}</span>`:''}`:'';
           const cellStyle=isRet?'opacity:.5;background:#f5f5f5;border:1px solid #e0e0e0;':`background:${c.bg};border:1.5px solid ${c.border};`;
           const nameColor=isRet?'color:#aaa;':`color:${c.text};`;
           html+=`<div class="${rCls}" style="${cellStyle}"><span class="room-lbl" style="${nameColor}opacity:.7;">${room}</span><span class="store-nm" style="${nameColor}">${s?s.name:''}</span>${staffTxt}${clientTxt}${retTxt}</div>`;

@@ -160,64 +160,60 @@ tbody td:last-child{border-right:none;}
   <div id="tokenGrid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
 </div>
 
-<!-- Client modal -->
-<div class="modal-overlay" id="clientModal">
-  <div class="modal" style="width:380px;">
-    <h3>填寫客人資料</h3>
-    <p id="clientModalDesc" style="font-size:13px;color:#888;margin-bottom:16px;"></p>
+<!-- 合併 Modal：客人資料 + 服務人員 -->
+<div class="modal-overlay" id="infoModal">
+  <div class="modal" style="width:400px;">
+    <h3>填寫包廂資訊</h3>
+    <p id="infoModalDesc" style="font-size:13px;color:#888;margin-bottom:14px;"></p>
 
-    <!-- 搜尋 ID -->
-    <div style="margin-bottom:10px;">
-      <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">客人 ID <span style="font-size:11px;color:#aaa;">（輸入後自動帶出）</span></label>
-      <input id="clientIdInput" type="text" placeholder="輸入客人 ID" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;"/>
-      <div id="clientSuggestions" style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;display:none;max-height:150px;overflow-y:auto;background:#fff;"></div>
+    <div style="border-bottom:1px solid #eee;padding-bottom:10px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:.5px;margin-bottom:8px;">顧客資料</div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">ID <span style="font-size:11px;color:#aaa;">（輸入後自動帶出）</span></label>
+        <input id="clientIdInput" type="text" placeholder="輸入客人 ID" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+        <div id="clientSuggestions" style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;display:none;max-height:140px;overflow-y:auto;background:#fff;position:relative;z-index:10;"></div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">姓名</label>
+        <input id="clientNameInput" type="text" placeholder="輸入客人姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div style="margin-bottom:0;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Segment</label>
+        <select id="clientSegInput" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff;">
+          <option value="">-- 請選擇 --</option>
+          <option value="Prestige">Prestige</option>
+          <option value="VVIC">VVIC</option>
+          <option value="VIC">VIC</option>
+          <option value="Aspiring Repeaters">Aspiring Repeaters</option>
+          <option value="Repeaters">Repeaters</option>
+          <option value="One-Timers">One-Timers</option>
+          <option value="Promising One-Timers">Promising One-Timers</option>
+          <option value="Sleeper">Sleeper</option>
+          <option value="Prospect">Prospect</option>
+          <option value="New">New</option>
+        </select>
+      </div>
     </div>
-    <div style="margin-bottom:10px;">
-      <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">姓名</label>
-      <input id="clientNameInput" type="text" placeholder="姓名（可手動輸入）" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;"/>
+
+    <div style="padding-bottom:4px;">
+      <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:.5px;margin-bottom:8px;">服務人員</div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">CA</label>
+        <input id="caInput" type="text" placeholder="輸入 CA 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Expert</label>
+        <input id="expertInput" type="text" placeholder="輸入 Expert 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div style="margin-bottom:14px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Runner</label>
+        <input id="runnerInput" type="text" placeholder="輸入 Runner 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
     </div>
-    <div style="margin-bottom:16px;">
-      <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">Segment</label>
-      <select id="clientSegInput" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;background:#fff;">
-        <option value="">-- 請選擇 --</option>
-        <option value="Prestige">Prestige</option>
-        <option value="VVIC">VVIC</option>
-        <option value="VIC">VIC</option>
-        <option value="Aspiring Repeaters">Aspiring Repeaters</option>
-        <option value="Repeaters">Repeaters</option>
-        <option value="One-Timers">One-Timers</option>
-        <option value="Promising One-Timers">Promising One-Timers</option>
-        <option value="Sleeper">Sleeper</option>
-        <option value="Prospect">Prospect</option>
-        <option value="New">New</option>
-      </select>
-    </div>
+
     <div class="modal-btns">
-      <button class="ext-opt" onclick="confirmClient()" style="text-align:center;background:#1F2D45;color:#fff;border:none;">儲存</button>
-      <button class="ext-cancel" onclick="closeClientModal()">取消</button>
-    </div>
-  </div>
-</div>
-<!-- Staff modal -->
-<div class="modal-overlay" id="staffModal">
-  <div class="modal">
-    <h3>填寫服務人員</h3>
-    <p id="staffModalDesc" style="font-size:13px;color:#888;margin-bottom:16px;"></p>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">Expert</label>
-      <input id="expertInput" type="text" placeholder="輸入 Expert 姓名" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
-    </div>
-    <div style="margin-bottom:12px;">
-      <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">Runner</label>
-      <input id="runnerInput" type="text" placeholder="輸入 Runner 姓名" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
-    </div>
-    <div style="margin-bottom:16px;">
-      <label style="font-size:13px;font-weight:500;color:#444;display:block;margin-bottom:6px;">CA</label>
-      <input id="caInput" type="text" placeholder="輸入 CA 姓名" style="width:100%;padding:9px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
-    </div>
-    <div class="modal-btns">
-      <button class="ext-opt" onclick="confirmStaff()" style="text-align:center;background:#1F2D45;color:#fff;border:none;">儲存</button>
-      <button class="ext-cancel" onclick="closeStaffModal()">取消</button>
+      <button class="ext-opt" onclick="confirmInfo()" style="text-align:center;background:#1F2D45;color:#fff;border:none;">儲存</button>
+      <button class="ext-cancel" onclick="closeInfoModal()">取消</button>
     </div>
   </div>
 </div>
@@ -493,8 +489,7 @@ function render(){
         <span class="store-label" style="${isReturned?'color:#aaa;':''}">${s.name}</span>
         ${staffLabel}${clientLabel}${retLabel}
         <button class="remove-btn" onclick="removeCell('${k.replace(/'/g,"\\'")}',event)">✕</button>
-        ${!isReturned?`<button class="staff-btn" onclick="openStaffModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)" title="填寫 Expert / Runner">👤</button>`:''}
-        ${!isReturned?`<button class="client-btn" onclick="openClientModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)" title="填寫客人資料">👁</button>`:''}
+        ${!isReturned?`<button class="staff-btn" onclick="openInfoModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)" title="填寫資訊">✏️</button>`:''}
         <button class="return-btn ${isReturned?'unreturned':''}" onclick="toggleReturn('${k.replace(/'/g,"\\'")}',event)" title="${isReturned?'取消歸還':'標記已歸還'}">
           ${isReturned?'↩':'✓'}
         </button>
@@ -509,21 +504,21 @@ function render(){
 window.removeCell=(k,e)=>{e.stopPropagation();delete assignments[k];delete returned[k];delete staff[k];delete clients[k];render();push();};
 window.toggleReturn=(k,e)=>{e.stopPropagation();returned[k]=!returned[k];render();push();};
 
-// ── 客人資料 modal ──────────────────────────────
-let pendingClientKey=null;
-window.openClientModal=(k,storeName,slot,e)=>{
+// ── 合併資訊 Modal ──────────────────────────────
+let pendingInfoKey=null;
+window.openInfoModal=(k,storeName,slot,e)=>{
   if(e)e.stopPropagation();
-  pendingClientKey=k;
-  document.getElementById('clientModalDesc').textContent=`${storeName}　${slot}`;
+  pendingInfoKey=k;
+  document.getElementById('infoModalDesc').textContent=`${storeName}　${slot}`;
   const cl=clients[k]||{};
   const sf=staff[k]||{};
   document.getElementById('clientIdInput').value=cl.clientId||'';
   document.getElementById('clientNameInput').value=cl.clientName||'';
   document.getElementById('caInput').value=sf.ca||'';
-  // 設定 segment 下拉選單的值
+  document.getElementById('expertInput').value=sf.expert||'';
+  document.getElementById('runnerInput').value=sf.runner||'';
   const segSel=document.getElementById('clientSegInput');
   segSel.value=cl.segment||'';
-  // 如果找不到選項（手動輸入過的值），動態加入
   if(cl.segment&&segSel.value!==cl.segment){
     const opt=document.createElement('option');
     opt.value=cl.segment;opt.textContent=cl.segment;
@@ -531,7 +526,7 @@ window.openClientModal=(k,storeName,slot,e)=>{
     segSel.value=cl.segment;
   }
   document.getElementById('clientSuggestions').style.display='none';
-  document.getElementById('clientModal').classList.add('open');
+  document.getElementById('infoModal').classList.add('open');
   setTimeout(()=>document.getElementById('clientIdInput').focus(),100);
 };
 
@@ -548,21 +543,20 @@ function updateSegmentDropdown(segments){
   });
   if(cur)sel.value=cur;
 }
-window.closeClientModal=()=>{document.getElementById('clientModal').classList.remove('open');pendingClientKey=null;};
-window.confirmClient=()=>{
-  if(!pendingClientKey)return;
+window.closeInfoModal=()=>{document.getElementById('infoModal').classList.remove('open');pendingInfoKey=null;};
+window.confirmInfo=()=>{
+  if(!pendingInfoKey)return;
   const clientId=document.getElementById('clientIdInput').value.trim();
   const clientName=document.getElementById('clientNameInput').value.trim();
   const segment=document.getElementById('clientSegInput').value.trim();
-  if(clientId||clientName||segment){clients[pendingClientKey]={clientId,clientName,segment};}
-  else{delete clients[pendingClientKey];}
-  // 同時把 CA 帶回 staff 欄位
-  const caVal=document.getElementById('caInput').value.trim();
-  if(caVal){
-    if(!staff[pendingClientKey])staff[pendingClientKey]={};
-    staff[pendingClientKey].ca=caVal;
-  }
-  closeClientModal();render();push();
+  const ca=document.getElementById('caInput').value.trim();
+  const expert=document.getElementById('expertInput').value.trim();
+  const runner=document.getElementById('runnerInput').value.trim();
+  if(clientId||clientName||segment){clients[pendingInfoKey]={clientId,clientName,segment};}
+  else{delete clients[pendingInfoKey];}
+  if(ca||expert||runner){staff[pendingInfoKey]={ca,expert,runner};}
+  else{delete staff[pendingInfoKey];}
+  closeInfoModal();render();push();
 };
 
 // ID 搜尋自動帶出 - 等 DOM 完全載入後再綁定
@@ -658,29 +652,7 @@ window.loadClientExcel=(e)=>{
   e.target.value='';
 };
 
-// Staff modal
-let pendingStaffKey=null;
-window.openStaffModal=(k,storeName,slot,e)=>{
-  if(e)e.stopPropagation();
-  pendingStaffKey=k;
-  document.getElementById('staffModalDesc').textContent=`${storeName}　${slot}`;
-  const sf=staff[k]||{};
-  document.getElementById('expertInput').value=sf.expert||'';
-  document.getElementById('runnerInput').value=sf.runner||'';
-  document.getElementById('caInput').value=sf.ca||'';
-  document.getElementById('staffModal').classList.add('open');
-  setTimeout(()=>document.getElementById('expertInput').focus(),100);
-};
-window.closeStaffModal=()=>{document.getElementById('staffModal').classList.remove('open');pendingStaffKey=null;};
-window.confirmStaff=()=>{
-  if(!pendingStaffKey)return;
-  const expert=document.getElementById('expertInput').value.trim();
-  const runner=document.getElementById('runnerInput').value.trim();
-  const ca=document.getElementById('caInput').value.trim();
-  if(expert||runner||ca){staff[pendingStaffKey]={expert,runner,ca};}
-  else{delete staff[pendingStaffKey];}
-  closeStaffModal();render();push();
-};
+
 window.clearClientList=()=>{
   if(!confirm('確定要清除所有客人名單嗎？'))return;
   clientList=[];
