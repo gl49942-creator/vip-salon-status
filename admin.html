@@ -677,7 +677,7 @@ function buildAll(){buildLegend();buildGrid();render();}
 // ── TOKEN 借用管理 ──────────────────────────────
 function totalLent(){
   return Object.entries(tokens).reduce((s,[k,v])=>{
-    if(k==='__other_note__')return s; // 排除備註文字
+    if(k==='__other_note__'||k==='__other_borrower__'||k.endsWith('__borrower__'))return s;
     return s+(typeof v==='number'?v:0);
   },0);
 }
@@ -689,6 +689,7 @@ function buildTokenSection(){
   grid.innerHTML='';
   ROOMS.forEach(room=>{
     const cnt=tokens[room]||0;
+    const borrower=tokens[room+'__borrower__']||'';
     const card=document.createElement('div');
     card.className='token-card';
     card.innerHTML=`
@@ -698,13 +699,15 @@ function buildTokenSection(){
         <span class="token-count">${cnt}</span>
         <button class="token-btn" data-room="${room}" data-delta="1">＋</button>
       </div>
-      <div class="token-label">${cnt>0?`已借 ${cnt} 顆`:'未借用'}</div>`;
+      ${cnt>0?`<input class="token-borrower-input" data-borrower-room="${room}" type="text" placeholder="借用人姓名" value="${borrower}" style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>`:''}
+      <div class="token-label">${cnt>0?`已借 ${cnt} 顆${borrower?' · '+borrower:''}`:'未借用'}</div>`;
     grid.appendChild(card);
   });
 
   // 「其他」卡片
   const otherCnt=tokens['__other_count__']||0;
   const otherNote=tokens['__other_note__']||'';
+  const otherBorrower=tokens['__other_borrower__']||'';
   const otherCard=document.createElement('div');
   otherCard.className='token-card';
   otherCard.style.minWidth='200px';
@@ -712,26 +715,42 @@ function buildTokenSection(){
     <div class="token-room">其他</div>
     <input id="otherNoteInput" type="text" placeholder="說明（例：前台暫借）"
       value="${otherNote}"
-      style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;margin-bottom:6px;outline:none;"
+      style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;margin-bottom:4px;outline:none;"
       onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
     <div class="token-controls">
       <button class="token-btn" data-room="__other__" data-delta="-1">－</button>
       <span class="token-count">${otherCnt}</span>
       <button class="token-btn" data-room="__other__" data-delta="1">＋</button>
     </div>
-    <div class="token-label">${otherCnt>0?`已借 ${otherCnt} 顆`:'未借用'}</div>`;
+    ${otherCnt>0?`<input id="otherBorrowerInput" type="text" placeholder="借用人姓名" value="${otherBorrower}" style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>`:''}
+    <div class="token-label">${otherCnt>0?`已借 ${otherCnt} 顆${otherBorrower?' · '+otherBorrower:''}`:'未借用'}</div>`;
   grid.appendChild(otherCard);
 
   // 備註欄輸入監聽
   const noteInput=document.getElementById('otherNoteInput');
   if(noteInput){
     noteInput.addEventListener('change',()=>{
-      tokens['__other_note__']=noteInput.value.trim();
-      push();
+      tokens['__other_note__']=noteInput.value.trim();push();
     });
   }
+  const otherBorrowerInput=document.getElementById('otherBorrowerInput');
+  if(otherBorrowerInput){
+    otherBorrowerInput.addEventListener('change',()=>{
+      tokens['__other_borrower__']=otherBorrowerInput.value.trim();push();
+    });
+  }
+  // 借用人輸入監聽（各包廂）
+  grid.querySelectorAll('.token-borrower-input').forEach(input=>{
+    input.addEventListener('change',()=>{
+      const room=input.dataset.borrowerRoom;
+      const val=input.value.trim();
+      if(val)tokens[room+'__borrower__']=val;
+      else delete tokens[room+'__borrower__'];
+      push();
+    });
+  });
 
-  // Event delegation
+  // Event delegation for +/- buttons
   grid.onclick=(e)=>{
     const btn=e.target.closest('[data-delta]');
     if(!btn)return;
