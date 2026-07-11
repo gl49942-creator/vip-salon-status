@@ -630,10 +630,10 @@ window.loadClientExcel=(e)=>{
           headerRow=r;
           lower.forEach((h,i)=>{
             if(h.includes('dream id')||h.includes('dream_id'))idCol=i;
-            if(h.includes('姓氏')||h==='last name'||h==='lastname')lastNameCol=i;
-            if(h.includes('名字')||h==='first name'||h==='firstname')firstNameCol=i;
-            if(h.includes('顧客層級')||h.includes('segment')||h.includes('seg'))segCol=i;
-            if(h.includes('ca名字')||h.includes('ca name')||h==='ca')caCol=i;
+            if(h==='姓氏'||h==='last name'||h==='lastname')lastNameCol=i;
+            if(h==='名字'||h==='first name'||h==='firstname')firstNameCol=i;
+            if((h.includes('顧客層級')||h==='segment'||h==='seg')&&segCol===-1)segCol=i;
+            if((h==='ca名字'||h==='ca name'||h==='ca')&&caCol===-1)caCol=i;
           });
           break;
         }
