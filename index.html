@@ -638,11 +638,13 @@ onValue(dbRef,snap=>{
 });
 
 function buildTokenDisplay(){
+  console.log('buildTokenDisplay called, tokens:', JSON.stringify(tokens));
   // 計算借出數量（排除所有 string 類型的值）
   const lent=Object.entries(tokens).reduce((s,[k,v])=>{
     if(typeof v!=='number')return s;
     return s+v;
   },0);
+  console.log('lent:', lent);
   const hasAny=lent>0;
   const display=document.getElementById('tokenDisplay');
   display.style.display=hasAny?'block':'none';
