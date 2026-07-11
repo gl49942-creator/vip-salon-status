@@ -479,15 +479,25 @@ function render(){
       if(sf.expert)sParts.push(`<span class="staff-badge">💡 ${sf.expert}</span>`);
       if(sf.runner)sParts.push(`<span class="staff-badge">🏃 ${sf.runner}</span>`);
       if(sf.ca)sParts.push(`<span class="staff-badge">🧑‍💼 ${sf.ca}</span>`);
-      const staffLabel=sParts.join('');
-      const hasClient=cl.clientId||cl.clientName||cl.segment;
-      const clientLabel=hasClient?`<hr class="cell-divider-a"/>${cl.clientId?`<span class="client-badge">ID: ${cl.clientId}</span>`:''} ${cl.clientName?`<span class="client-badge">Name: ${cl.clientName}</span>`:''} ${cl.segment?`<span class="client-badge">Seg: ${cl.segment}</span>`:''}`:'';
+      // 客人資料：ID, Name, Seg
+      const cParts=[];
+      if(cl.clientId)cParts.push(`<span class="client-badge">ID: ${cl.clientId}</span>`);
+      if(cl.clientName)cParts.push(`<span class="client-badge">Name: ${cl.clientName}</span>`);
+      if(cl.segment)cParts.push(`<span class="client-badge">Seg: ${cl.segment}</span>`);
+      // 服務人員：CA, Expert, Runner
+      const pParts=[];
+      if(sf.ca)pParts.push(`<span class="staff-badge">🧑‍💼 ${sf.ca}</span>`);
+      if(sf.expert)pParts.push(`<span class="staff-badge">💡 ${sf.expert}</span>`);
+      if(sf.runner)pParts.push(`<span class="staff-badge">🏃 ${sf.runner}</span>`);
+      const hasC=cParts.length>0;
+      const hasP=pParts.length>0;
+      const infoLabel=(hasC||hasP)?`${cParts.join('')}${hasC&&hasP?'<hr class="cell-divider-a"/>':''}${pParts.join('')}`:'';
       const retLabel=isReturned?`<span class="ret-badge">已歸還</span>`:'';
       const retStyle=isReturned?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
       cell.classList.add('filled');
       cell.innerHTML=`<div class="assigned" draggable="${isReturned?'false':'true'}" style="${retStyle||`background:${c.bg};border:2px solid ${c.border};color:${c.text};`}">
         <span class="store-label" style="${isReturned?'color:#aaa;':''}">${s.name}</span>
-        ${staffLabel}${clientLabel}${retLabel}
+        ${infoLabel}${retLabel}
         <button class="remove-btn" onclick="removeCell('${k.replace(/'/g,"\\'")}',event)">✕</button>
         ${!isReturned?`<button class="staff-btn" onclick="openInfoModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)" title="填寫資訊">✏️</button>`:''}
         <button class="return-btn ${isReturned?'unreturned':''}" onclick="toggleReturn('${k.replace(/'/g,"\\'")}',event)" title="${isReturned?'取消歸還':'標記已歸還'}">
