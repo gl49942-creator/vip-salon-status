@@ -309,8 +309,11 @@ window.applySettings=()=>{
   [assignments,returned,staff].forEach(obj=>{
     Object.keys(obj).forEach(k=>{if(!validKeys.has(k))delete obj[k];});
   });
-  // TOKEN：只保留還存在的包廂
-  Object.keys(tokens).forEach(room=>{if(!ROOMS.includes(room))delete tokens[room];});
+  // TOKEN：只刪除不在 ROOMS 裡的包廂 key（保留 __other__、__borrower__ 等特殊 key）
+  Object.keys(tokens).forEach(room=>{
+    if(room.startsWith('__'))return; // 保留特殊 key
+    if(!ROOMS.includes(room)&&!room.endsWith('__borrower__'))delete tokens[room];
+  });
 
   // 處理包廂改名：舊名稱→新名稱（依 index 對應）
   const renameMap={};

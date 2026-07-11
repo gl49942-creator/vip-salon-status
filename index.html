@@ -638,9 +638,10 @@ onValue(dbRef,snap=>{
 });
 
 function buildTokenDisplay(){
+  // 計算借出數量（排除所有 string 類型的值）
   const lent=Object.entries(tokens).reduce((s,[k,v])=>{
-    if(k==='__other_note__'||k==='__other_borrower__'||k.endsWith('__borrower__'))return s;
-    return s+(typeof v==='number'?v:0);
+    if(typeof v!=='number')return s;
+    return s+v;
   },0);
   const hasAny=lent>0;
   const display=document.getElementById('tokenDisplay');
@@ -654,7 +655,7 @@ function buildTokenDisplay(){
   const grid=document.getElementById('tokenViewGrid');
   grid.innerHTML='';
   Object.entries(tokens).forEach(([room,cnt])=>{
-    if(room==='__other_note__'||room==='__other_borrower__'||room.endsWith('__borrower__')||typeof cnt!=='number'||!cnt)return;
+    if(typeof cnt!=='number'||cnt<=0)return;
     const isOther=room==='__other_count__';
     const label=isOther?(tokens['__other_note__']||'其他'):room;
     const borrower=isOther?(tokens['__other_borrower__']||''):(tokens[room+'__borrower__']||'');
