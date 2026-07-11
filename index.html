@@ -593,7 +593,7 @@ function updateClock(){document.getElementById('clock').textContent='現在時�
 function tick(){
   const total=Object.keys(assignments).length;
   document.getElementById('emptyNotice').style.display=total===0?'block':'none';
-  buildTable();buildCards();updateAlert();updateClock();updateSlotLabels();
+  buildTable();buildCards();updateAlert();updateClock();updateSlotLabels();buildTokenDisplay();
 }
 // 輕量更新：每3秒更新時間、警示、手機卡片排序
 function updateCellStyles(){
