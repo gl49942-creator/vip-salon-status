@@ -273,7 +273,7 @@ function occupiedRooms(slot){
     const sid=assignments[k];
     if(sid&&!returned[k]){
       const rst=roomStatus(slot,k);
-      if(rst!=='overtime'&&rst!=='warn15'&&rst!=='warn30'){
+      if(rst==='overtime'||rst==='warn15'||rst==='warn30'){
         const s=STORES.find(x=>x.id===sid);
         if(s)res.push({room,k,sid,name:s.name});
       }
