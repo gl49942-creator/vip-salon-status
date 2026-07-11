@@ -268,7 +268,8 @@ function setSyncStatus(s){
 }
 function push(){
   isSyncing=true;setSyncStatus('saving');
-  set(dbRef,{assignments,returned,staff,tokens,clients,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;});
+  console.log('pushing tokens:', JSON.stringify(tokens));
+  set(dbRef,{assignments,returned,staff,tokens,clients,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
