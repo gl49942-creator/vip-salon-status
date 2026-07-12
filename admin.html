@@ -965,7 +965,7 @@ function adjustToken(room,delta){
 }
 
 // 每3秒更新時段倒數標籤
-setInterval(()=>{updateSlotLabels();render();},3000);
+setInterval(()=>{updateSlotLabels();buildGrid();render();},3000);
 // 初始化 TOKEN 區域
 buildTokenSection();
 

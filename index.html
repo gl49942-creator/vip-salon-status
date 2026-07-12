@@ -654,7 +654,9 @@ function buildCards(){
             else if(rst==='warn15')rCls+=' cell-w15';
             else if(rst==='warn30')rCls+=' cell-w30';
             const {sx,cx,cellSty,nameSty,infoTxt,retTxt}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet);
-            const gLbl=clX.guests?` <span style="font-size:9px;opacity:.75;">（餐飲 ${clX.guests} 人）</span>`:'';html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.7;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}${gLbl}</span>${infoTxt}${retTxt}</div>`;
+            const cl1=clients[k]||{};
+            const gLbl=cl1.guests?` <span style="font-size:9px;opacity:.75;">（餐飲 ${cl1.guests} 人）</span>`:'';
+            html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.7;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}${gLbl}</span>${infoTxt}${retTxt}</div>`;
           } else if(sid&&sid2){
             // 兩輪
             const rst=roomStatus(slot,k);
@@ -736,7 +738,7 @@ function updateCellStyles(){
   });
 }
 
-function lightTick(){updateAlert();updateClock();updateSlotLabels();buildCards();updateCellStyles();buildTokenDisplay();}
+function lightTick(){updateAlert();updateClock();updateSlotLabels();buildTable();buildCards();updateCellStyles();buildTokenDisplay();}
 
 onValue(dbRef,snap=>{
   document.getElementById('syncDot').className='sync-dot connected';
