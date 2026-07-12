@@ -80,6 +80,12 @@ tbody td:last-child{border-right:none;}
 .cell:hover .staff-btn,.assigned:hover .staff-btn,
 .cell:hover .client-btn,.assigned:hover .client-btn{opacity:1;}
 .ret-badge{font-size:10px;font-weight:600;padding:1px 6px;border-radius:6px;background:#e0e0e0;color:#888;}
+.round-hdr-a{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+.round-hdr-a:hover{filter:brightness(.95);}
+.round-hdr-a .chv{font-size:9px;transition:transform .2s;}
+.round-hdr-a.open .chv{transform:rotate(180deg);}
+.r2-add-btn{font-size:10px;padding:2px 8px;border-radius:6px;border:1px dashed #aaa;background:transparent;color:#888;cursor:pointer;margin:4px 8px;width:calc(100% - 16px);font-family:inherit;}
+.r2-add-btn:hover{background:#f0f0f0;}
 .staff-badge{font-size:10px;opacity:.85;display:block;line-height:1.6;}
 .cell-divider-a{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 0;}
 .client-badge{font-size:10px;font-weight:500;color:#3C3489;display:block;line-height:1.6;}
@@ -248,11 +254,15 @@ const COLORS=[{bg:'#E6F1FB',border:'#185FA5',text:'#0C447C'},{bg:'#E1F5EE',borde
 let SLOTS=['11:00–13:00','13:00–15:00','15:00–17:00','17:00–19:00','19:00–21:00'];
 let ROOMS=Array.from({length:9},(_,i)=>`包廂 ${i+1}`);
 let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'},{id:'tnn',name:'TN'},{id:'101',name:'TPE 101'},{id:'a3',name:'A3'},{id:'lvb',name:'LVB'},{id:'sogo',name:'SOGO'}];
-let assignments={};   // {key: storeId}
+let assignments={};   // {key: storeId} 第一輪
 let returned={};      // {key: bool}
 let staff={};         // {key: {expert, runner, ca}}
 let tokens={};        // {roomName: count}
 let clients={};       // {key: {clientId, clientName, segment}}
+let assignments2={};  // {key: storeId} 第二輪
+let staff2={};
+let clients2={};
+let returned2={};
 let clientList=[];    // [{id, name, segment}] 從Excel載入
 const TOKEN_TOTAL=5;
 let dragStore=null,dragFrom=null,isSyncing=false;
@@ -268,7 +278,7 @@ function setSyncStatus(s){
 }
 function push(){
   isSyncing=true;setSyncStatus('saving');
-  set(dbRef,{assignments,returned,staff,tokens,clients,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
+  set(dbRef,{assignments,returned,staff,tokens,clients,assignments2,staff2,clients2,returned2,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
@@ -281,6 +291,10 @@ onValue(dbRef,snap=>{
   staff=d.staff||{};
   tokens=d.tokens||{};
   clients=d.clients||{};
+  assignments2=d.assignments2||{};
+  staff2=d.staff2||{};
+  clients2=d.clients2||{};
+  returned2=d.returned2||{};
   setSyncStatus('connected');buildAll();buildTokenSection();
 });
 
@@ -306,7 +320,7 @@ window.applySettings=()=>{
   // 只清除已不存在的 slot 或 room 的資料，保留有效的
   const validKeys=new Set();
   SLOTS.forEach(slot=>ROOMS.forEach(room=>validKeys.add(key(room,slot))));
-  [assignments,returned,staff].forEach(obj=>{
+  [assignments,returned,staff,clients,assignments2,staff2,clients2,returned2].forEach(obj=>{
     Object.keys(obj).forEach(k=>{if(!validKeys.has(k))delete obj[k];});
   });
   // TOKEN：只刪除不在 ROOMS 裡的包廂 key（保留 __other__、__borrower__ 等特殊 key）
@@ -464,6 +478,11 @@ function buildGrid(){
         // 把原本格子的所有資訊帶到新位置
         if(staff[dragFrom])  {staff[k]=staff[dragFrom];  delete staff[dragFrom];}  else delete staff[k];
         if(clients[dragFrom]){clients[k]=clients[dragFrom];delete clients[dragFrom];}else delete clients[k];
+        // 第二輪也一起帶走
+        if(assignments2[dragFrom]){assignments2[k]=assignments2[dragFrom];delete assignments2[dragFrom];}else delete assignments2[k];
+        if(staff2[dragFrom])  {staff2[k]=staff2[dragFrom];  delete staff2[dragFrom];}  else delete staff2[k];
+        if(clients2[dragFrom]){clients2[k]=clients2[dragFrom];delete clients2[dragFrom];}else delete clients2[k];
+        delete returned2[dragFrom];delete returned2[k];
         // 歸還狀態不帶過去（新位置視為未歸還）
         delete returned[dragFrom];
         delete returned[k];
@@ -474,56 +493,167 @@ function buildGrid(){
   });
 }
 
+function cellInfoHTML(sid,sfObj,clObj,isRet,k,slot,isR2=false){
+  const s=STORES.find(x=>x.id===sid);if(!s)return'';
+  const c=color(sid);
+  const cParts=[];
+  if(clObj.clientId)cParts.push(`<span class="client-badge">ID: ${clObj.clientId}</span>`);
+  if(clObj.clientName)cParts.push(`<span class="client-badge">Name: ${clObj.clientName}</span>`);
+  if(clObj.segment)cParts.push(`<span class="client-badge">Seg: ${clObj.segment}</span>`);
+  const pParts=[];
+  if(sfObj.ca)pParts.push(`<span class="staff-badge">🧑‍💼 ${sfObj.ca}</span>`);
+  if(sfObj.expert)pParts.push(`<span class="staff-badge">💡 ${sfObj.expert}</span>`);
+  if(sfObj.runner)pParts.push(`<span class="staff-badge">🏃 ${sfObj.runner}</span>`);
+  const hasC=cParts.length>0,hasP=pParts.length>0;
+  const infoLabel=(hasC||hasP)?`${cParts.join('')}${hasC&&hasP?'<hr class="cell-divider-a"/>':''}${pParts.join('')}`:'';
+  const retLabel=isRet?`<span class="ret-badge">已歸還</span>`:'';
+  const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
+  const ke=k.replace(/'/g,"\\'");
+  const sname=s.name.replace(/'/g,"\\'");
+  const slote=slot.replace(/'/g,"\\'");
+  if(isR2){
+    return `<div class="assigned" draggable="${isRet?'false':'true'}" style="${retStyle||`background:${c.bg};border:2px solid ${c.border};color:${c.text};`}">
+      <span class="store-label" style="${isRet?'color:#aaa;':''}">${s.name}</span>
+      ${infoLabel}${retLabel}
+      <button class="remove-btn" onclick="removeCell2('${ke}',event)">✕</button>
+      ${!isRet?`<button class="staff-btn" onclick="openInfoModal2('${ke}','${sname}','${slote}',event)" title="填寫資訊">✏️</button>`:''}
+      <button class="return-btn ${isRet?'unreturned':''}" onclick="toggleReturn2('${ke}',event)" title="${isRet?'取消歸還':'標記已歸還'}">${isRet?'↩':'✓'}</button>
+    </div>`;
+  }
+  return `<div class="assigned" draggable="${isRet?'false':'true'}" style="${retStyle||`background:${c.bg};border:2px solid ${c.border};color:${c.text};`}">
+    <span class="store-label" style="${isRet?'color:#aaa;':''}">${s.name}</span>
+    ${infoLabel}${retLabel}
+    <button class="remove-btn" onclick="removeCell('${ke}',event)">✕</button>
+    ${!isRet?`<button class="staff-btn" onclick="openInfoModal('${ke}','${sname}','${slote}',event)" title="填寫資訊">✏️</button>`:''}
+    <button class="return-btn ${isRet?'unreturned':''}" onclick="toggleReturn('${ke}',event)" title="${isRet?'取消歸還':'標記已歸還'}">${isRet?'↩':'✓'}</button>
+  </div>`;
+}
+
 function render(){
   document.querySelectorAll('.cell').forEach(cell=>{
     const room=decodeURIComponent(cell.dataset.room);
     const slot=decodeURIComponent(cell.dataset.slot);
     const k=key(room,slot);
     const sid=assignments[k];
-    if(sid){
+    const sid2=assignments2[k];
+
+    if(!sid&&!sid2){cell.classList.remove('filled');cell.innerHTML='';return;}
+
+    cell.classList.add('filled');
+    const isRet=returned[k]||false;
+    const isRet2=returned2[k]||false;
+
+    if(sid&&!sid2){
+      // 單輪
       const s=STORES.find(x=>x.id===sid);if(!s){delete assignments[k];cell.classList.remove('filled');cell.innerHTML='';return;}
-      const c=color(sid);
-      const isReturned=returned[k]||false;
-      const sf=staff[k]||{};
-      const cl=clients[k]||{};
-      const sParts=[];
-      if(sf.expert)sParts.push(`<span class="staff-badge">💡 ${sf.expert}</span>`);
-      if(sf.runner)sParts.push(`<span class="staff-badge">🏃 ${sf.runner}</span>`);
-      if(sf.ca)sParts.push(`<span class="staff-badge">🧑‍💼 ${sf.ca}</span>`);
-      // 客人資料：ID, Name, Seg
-      const cParts=[];
-      if(cl.clientId)cParts.push(`<span class="client-badge">ID: ${cl.clientId}</span>`);
-      if(cl.clientName)cParts.push(`<span class="client-badge">Name: ${cl.clientName}</span>`);
-      if(cl.segment)cParts.push(`<span class="client-badge">Seg: ${cl.segment}</span>`);
-      // 服務人員：CA, Expert, Runner
-      const pParts=[];
-      if(sf.ca)pParts.push(`<span class="staff-badge">🧑‍💼 ${sf.ca}</span>`);
-      if(sf.expert)pParts.push(`<span class="staff-badge">💡 ${sf.expert}</span>`);
-      if(sf.runner)pParts.push(`<span class="staff-badge">🏃 ${sf.runner}</span>`);
-      const hasC=cParts.length>0;
-      const hasP=pParts.length>0;
-      const infoLabel=(hasC||hasP)?`${cParts.join('')}${hasC&&hasP?'<hr class="cell-divider-a"/>':''}${pParts.join('')}`:'';
-      const retLabel=isReturned?`<span class="ret-badge">已歸還</span>`:'';
-      const retStyle=isReturned?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
-      cell.classList.add('filled');
-      cell.innerHTML=`<div class="assigned" draggable="${isReturned?'false':'true'}" style="${retStyle||`background:${c.bg};border:2px solid ${c.border};color:${c.text};`}">
-        <span class="store-label" style="${isReturned?'color:#aaa;':''}">${s.name}</span>
-        ${infoLabel}${retLabel}
-        <button class="remove-btn" onclick="removeCell('${k.replace(/'/g,"\\'")}',event)">✕</button>
-        ${!isReturned?`<button class="staff-btn" onclick="openInfoModal('${k.replace(/'/g,"\\'")}','${s.name}','${slot}',event)" title="填寫資訊">✏️</button>`:''}
-        <button class="return-btn ${isReturned?'unreturned':''}" onclick="toggleReturn('${k.replace(/'/g,"\\'")}',event)" title="${isReturned?'取消歸還':'標記已歸還'}">
-          ${isReturned?'↩':'✓'}
-        </button>
-      </div>`;
-      if(!isReturned){
-        cell.querySelector('.assigned').addEventListener('dragstart',e=>{dragStore=sid;dragFrom=k;e.dataTransfer.effectAllowed='move';e.stopPropagation();});
+      cell.innerHTML=cellInfoHTML(sid,staff[k]||{},clients[k]||{},isRet,k,slot,false);
+      if(!isRet) cell.querySelector('.assigned').addEventListener('dragstart',e=>{dragStore=sid;dragFrom=k;e.dataTransfer.effectAllowed='move';e.stopPropagation();});
+
+      // 第一輪已歸還，顯示「＋第二輪」按鈕
+      if(isRet){
+        const btn=document.createElement('button');
+        btn.className='r2-add-btn';
+        btn.textContent='＋ 新增第二輪';
+        btn.onclick=(e)=>{e.stopPropagation();openR2StoreSelect(k,slot);};
+        cell.appendChild(btn);
       }
-    }else{cell.classList.remove('filled');cell.innerHTML='';}
+      return;
+    }
+
+    if(sid&&sid2){
+      // 兩輪
+      const s1=STORES.find(x=>x.id===sid);
+      const s2=STORES.find(x=>x.id===sid2);
+      const c2=s2?color(sid2):{bg:'#eee',border:'#ccc',text:'#666'};
+      const ke=k.replace(/'/g,"\\'");
+      const uid='r'+Math.random().toString(36).slice(2,7);
+
+      const r1mini=`<div class="round-hdr-a" id="h1-${uid}" onclick="toggleRound('${uid}',1)" style="background:#e8e8e8;color:#777;">
+        <span>第一輪 · ${s1?s1.name:'?'} · ✓ 已歸還</span><span class="chv">▾</span>
+      </div>
+      <div id="d1-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
+        ${cellInfoHTML(sid,staff[k]||{},clients[k]||{},isRet,k,slot,false)}
+      </div>`;
+
+      const r2hdrBg=isRet2?'background:#e8e8e8;color:#777;':`background:${c2.border};color:#fff;`;
+      const r2status=isRet2?'✓ 已歸還':'進行中';
+      const r2html=`<div class="round-hdr-a" id="h2-${uid}" onclick="toggleRound('${uid}',2)" style="${r2hdrBg}">
+        <span>第二輪 · ${s2?s2.name:'?'} · ${r2status}</span><span class="chv">▾</span>
+      </div>
+      <div id="d2-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
+        ${cellInfoHTML(sid2,staff2[k]||{},clients2[k]||{},isRet2,k,slot,true)}
+      </div>`;
+
+      const border=isRet2?'1.5px solid #e0e0e0':`2px solid ${c2.border}`;
+      cell.innerHTML=`<div style="border:${border};border-radius:8px;width:100%;overflow:hidden;display:flex;flex-direction:column;">
+        ${r1mini}${r2html}
+      </div>`;
+    }
   });
 }
 
-window.removeCell=(k,e)=>{e.stopPropagation();delete assignments[k];delete returned[k];delete staff[k];delete clients[k];render();push();};
+window.removeCell=(k,e)=>{e.stopPropagation();delete assignments[k];delete returned[k];delete staff[k];delete clients[k];delete assignments2[k];delete staff2[k];delete clients2[k];delete returned2[k];render();push();};
 window.toggleReturn=(k,e)=>{e.stopPropagation();returned[k]=!returned[k];render();push();};
+window.removeCell2=(k,e)=>{e.stopPropagation();delete assignments2[k];delete staff2[k];delete clients2[k];delete returned2[k];render();push();};
+window.toggleReturn2=(k,e)=>{e.stopPropagation();returned2[k]=!returned2[k];render();push();};
+window.toggleRound=(uid,n)=>{
+  const hdr=document.getElementById(`h${n}-${uid}`);
+  const det=document.getElementById(`d${n}-${uid}`);
+  if(!hdr||!det)return;
+  const isOpen=det.style.maxHeight!=='0px'&&det.style.maxHeight!=='';
+  det.style.maxHeight=isOpen?'0px':'500px';
+  hdr.classList.toggle('open',!isOpen);
+};
+
+// 第二輪 store 選擇彈窗
+let pendingR2Key=null;
+window.openR2StoreSelect=(k,slot)=>{
+  pendingR2Key=k;
+  // 用 legend 的店鋪列表建立一個快速選單
+  const modal=document.createElement('div');
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:2000;';
+  modal.id='r2SelectModal';
+  modal.innerHTML=`<div style="background:#fff;border-radius:14px;padding:20px;width:320px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:4px;">選擇第二輪店鋪</h3>
+    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">${slot}</p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      ${STORES.map(s=>`<button onclick="confirmR2('${s.id.replace(/'/g,"\\'")}')" style="padding:10px 14px;border-radius:8px;border:1.5px solid #ddd;background:#fff;text-align:left;cursor:pointer;font-size:14px;font-family:inherit;font-weight:500;">${s.name}</button>`).join('')}
+    </div>
+    <button onclick="document.getElementById('r2SelectModal').remove()" style="margin-top:12px;width:100%;padding:9px;border-radius:8px;border:1px solid #ddd;background:#f5f5f5;cursor:pointer;font-family:inherit;">取消</button>
+  </div>`;
+  document.body.appendChild(modal);
+};
+window.confirmR2=(storeId)=>{
+  if(!pendingR2Key)return;
+  assignments2[pendingR2Key]=storeId;
+  document.getElementById('r2SelectModal')?.remove();
+  pendingR2Key=null;
+  render();push();
+};
+
+// 第二輪 infoModal
+window.openInfoModal2=(k,storeName,slot,e)=>{
+  if(e)e.stopPropagation();
+  pendingInfoKey='__r2__'+k;
+  document.getElementById('infoModalDesc').textContent=`[第二輪] ${storeName}　${slot}`;
+  const cl=clients2[k]||{};
+  const sf=staff2[k]||{};
+  document.getElementById('clientIdInput').value=cl.clientId||'';
+  document.getElementById('clientNameInput').value=cl.clientName||'';
+  document.getElementById('caInput').value=sf.ca||'';
+  document.getElementById('expertInput').value=sf.expert||'';
+  document.getElementById('runnerInput').value=sf.runner||'';
+  const segSel=document.getElementById('clientSegInput');
+  segSel.value=cl.segment||'';
+  if(cl.segment&&segSel.value!==cl.segment){
+    const opt=document.createElement('option');
+    opt.value=cl.segment;opt.textContent=cl.segment;
+    segSel.appendChild(opt);segSel.value=cl.segment;
+  }
+  document.getElementById('clientSuggestions').style.display='none';
+  document.getElementById('infoModal').classList.add('open');
+  setTimeout(()=>document.getElementById('clientIdInput').focus(),100);
+};
 
 // ── 合併資訊 Modal ──────────────────────────────
 let pendingInfoKey=null;
@@ -567,16 +697,21 @@ function updateSegmentDropdown(segments){
 window.closeInfoModal=()=>{document.getElementById('infoModal').classList.remove('open');pendingInfoKey=null;};
 window.confirmInfo=()=>{
   if(!pendingInfoKey)return;
+  const isR2=pendingInfoKey.startsWith('__r2__');
+  const k=isR2?pendingInfoKey.slice(6):pendingInfoKey;
   const clientId=document.getElementById('clientIdInput').value.trim();
   const clientName=document.getElementById('clientNameInput').value.trim();
   const segment=document.getElementById('clientSegInput').value.trim();
   const ca=document.getElementById('caInput').value.trim();
   const expert=document.getElementById('expertInput').value.trim();
   const runner=document.getElementById('runnerInput').value.trim();
-  if(clientId||clientName||segment){clients[pendingInfoKey]={clientId,clientName,segment};}
-  else{delete clients[pendingInfoKey];}
-  if(ca||expert||runner){staff[pendingInfoKey]={ca,expert,runner};}
-  else{delete staff[pendingInfoKey];}
+  if(isR2){
+    if(clientId||clientName||segment){clients2[k]={clientId,clientName,segment};}else{delete clients2[k];}
+    if(ca||expert||runner){staff2[k]={ca,expert,runner};}else{delete staff2[k];}
+  }else{
+    if(clientId||clientName||segment){clients[k]={clientId,clientName,segment};}else{delete clients[k];}
+    if(ca||expert||runner){staff[k]={ca,expert,runner};}else{delete staff[k];}
+  }
   closeInfoModal();render();push();
 };
 
@@ -682,7 +817,7 @@ window.clearClientList=()=>{
   document.getElementById('clientListStatus').style.color='#888';
   updateSegmentDropdown([]);
 };
-window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};render();buildTokenSection();push();}};
+window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};assignments2={};staff2={};clients2={};returned2={};render();buildTokenSection();push();}};
 function buildAll(){buildLegend();buildGrid();render();}
 
 // ── TOKEN 借用管理 ──────────────────────────────
@@ -793,37 +928,52 @@ buildTokenSection();
 window.exportExcel=function(){
   const today=new Date();
   const dateStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  const todayData={slots:SLOTS,rooms:ROOMS,stores:STORES,assignments,staff,returned,clients,savedAt:new Date().toISOString()};
+  const todayData={slots:SLOTS,rooms:ROOMS,stores:STORES,assignments,staff,returned,clients,assignments2,staff2,returned2,clients2,savedAt:new Date().toISOString()};
   if(typeof XLSX==='undefined'){alert('報表套件載入中，請稍後再試');return;}
   set(ref(db,`history/${dateStr}`),todayData).then(()=>{
     get(ref(db,'history')).then(snap=>{
       const history=snap.val()||{};
       const wb=XLSX.utils.book_new();
       const dates=Object.keys(history).sort();
-      const rows=[['日期','時段','包廂','店鋪','客人ID','客人姓名','Segment','Expert','Runner','CA','已歸還']];
+      const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','Expert','Runner','CA','已歸還']];
       dates.forEach(date=>{
         const d=history[date];if(!d)return;
         const slotList=d.slots||[],roomList=d.rooms||[],storeList=d.stores||[];
         const asgn=d.assignments||{},sfData=d.staff||{},retData=d.returned||{};
+        const asgn2=d.assignments2||{},sfData2=d.staff2||{},retData2=d.returned2||{};
         let dateShown=false;
         slotList.forEach(slot=>{
           let slotShown=false;
           roomList.forEach(room=>{
             const k=`${room}||${slot}`;
-            const sid=asgn[k];if(!sid)return;
-            const s=storeList.find(x=>x.id===sid);
-            const sfInfo=sfData[k]||{};
-            const clInfo=(d.clients||{})[k]||{};
-            const retVal=retData[k]?'✓':'';
-            rows.push([dateShown?'':date,slotShown?'':slot,room,s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.expert||'',sfInfo.runner||'',sfInfo.ca||'',retVal]);
-            dateShown=true;slotShown=true;
+            const sid=asgn[k];
+            const sid2=asgn2[k];
+            if(!sid&&!sid2)return;
+            // 第一輪
+            if(sid){
+              const s=storeList.find(x=>x.id===sid);
+              const sfInfo=sfData[k]||{};
+              const clInfo=(d.clients||{})[k]||{};
+              const retVal=retData[k]?'✓':'';
+              rows.push([dateShown?'':date,slotShown?'':slot,room,'第一輪',s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.expert||'',sfInfo.runner||'',sfInfo.ca||'',retVal]);
+              dateShown=true;slotShown=true;
+            }
+            // 第二輪
+            if(sid2){
+              const s2=storeList.find(x=>x.id===sid2);
+              const sfInfo2=sfData2[k]||{};
+              const clInfo2=(d.clients2||{})[k]||{};
+              const retVal2=retData2[k]?'✓':'';
+              rows.push([dateShown?'':date,slotShown&&sid?'':slot,room,'第二輪',s2?s2.name:'',clInfo2.clientId||'',clInfo2.clientName||'',clInfo2.segment||'',sfInfo2.expert||'',sfInfo2.runner||'',sfInfo2.ca||'',retVal2]);
+              dateShown=true;slotShown=true;
+            }
           });
         });
         if(dateShown)rows.push([]);
       });
       if(rows.length<=1){alert('尚無資料可匯出');return;}
       const ws=XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols']=[{wch:12},{wch:18},{wch:10},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:8}];
+      ws['!cols']=[{wch:12},{wch:18},{wch:10},{wch:8},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:8}];
       ws['!freeze']={xSplit:0,ySplit:1};
       XLSX.utils.book_append_sheet(wb,ws,'VIP Salon 全期紀錄');
       XLSX.writeFile(wb,'VIP_Salon_全期報表.xlsx');

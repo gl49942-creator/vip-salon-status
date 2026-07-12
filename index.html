@@ -74,7 +74,10 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   .staff-line{font-size:10px;opacity:.85;display:block;line-height:1.6;}
   .cell-divider{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 0;}
   .client-line{font-size:10px;font-weight:500;display:block;line-height:1.6;color:#3C3489;}
-  .done-label{font-size:10px;font-weight:500;padding:1px 5px;border-radius:6px;background:#e0e0e0;color:#888;align-self:flex-start;margin-top:2px;}
+  .round-hdr-v{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+  .round-hdr-v:hover{filter:brightness(.95);}
+  .round-hdr-v .chv{font-size:9px;transition:transform .2s;}
+  .round-hdr-v.open .chv{transform:rotate(180deg);}
 }
 
 /* ── MOBILE (<768px) ── */
@@ -152,6 +155,7 @@ let SLOTS=['11:00–13:00','13:00–15:00','15:00–17:00','17:00–19:00','19:0
 let ROOMS=Array.from({length:9},(_,i)=>`包廂 ${i+1}`);
 let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'},{id:'tnn',name:'TN'},{id:'101',name:'TPE 101'},{id:'a3',name:'A3'},{id:'lvb',name:'LVB'},{id:'sogo',name:'SOGO'}];
 let assignments={},returned={},staff={},tokens={},clients={};
+let assignments2={},staff2={},clients2={},returned2={};
 const TOKEN_TOTAL=5;
 const color=id=>COLORS[STORES.findIndex(s=>s.id===id)%COLORS.length]||COLORS[0];
 const key=(r,s)=>`${r}||${s}`;
@@ -215,13 +219,21 @@ function slotStatus(slot){
   const order=['overtime','warn15','warn30','active','upcoming','done'];
   let worst='upcoming';
   ROOMS.forEach(room=>{
-    const sid=assignments[key(room,slot)];
-    if(!sid)return;
-    const st=roomStatus(slot,key(room,slot));
-    if(order.indexOf(st)<order.indexOf(worst))worst=st;
+    const k=key(room,slot);
+    const sid=assignments[k];
+    const sid2=assignments2[k];
+    // 第一輪未歸還
+    if(sid&&!returned[k]){
+      const st=roomStatus(slot,k);
+      if(order.indexOf(st)<order.indexOf(worst))worst=st;
+    }
+    // 第二輪未歸還
+    if(sid2&&!returned2[k]){
+      const st=roomStatus(slot,k);
+      if(order.indexOf(st)<order.indexOf(worst))worst=st;
+    }
   });
 
-  // 如果最差狀態是 overtime，再確認是否下一場次已開始且所有包廂都已歸還
   if(worst==='overtime'){
     const p=parseSlot(slot);if(!p)return'overtime';
     const now=new Date();
@@ -230,11 +242,11 @@ function slotStatus(slot){
     if(now.getTime()>endMs){
       const hasUnreturned=ROOMS.some(room=>{
         const k=key(room,slot);
-        return assignments[k]&&!returned[k];
+        return (assignments[k]&&!returned[k])||(assignments2[k]&&!returned2[k]);
       });
       if(!hasUnreturned){
         const si=SLOTS.indexOf(slot);
-        if(si===SLOTS.length-1)return'done'; // 最後場次
+        if(si===SLOTS.length-1)return'done';
         const nextP=parseSlot(SLOTS[si+1]);
         if(nextP){
           const nextStartMs=base.getTime()+(nextP.startH*60+nextP.startM)*60*1000;
@@ -270,12 +282,22 @@ function occupiedRooms(slot){
   const res=[];
   ROOMS.forEach(room=>{
     const k=key(room,slot);
+    // 第一輪未歸還
     const sid=assignments[k];
     if(sid&&!returned[k]){
       const rst=roomStatus(slot,k);
       if(rst==='overtime'||rst==='warn15'||rst==='warn30'){
         const s=STORES.find(x=>x.id===sid);
         if(s)res.push({room,k,sid,name:s.name});
+      }
+    }
+    // 第二輪未歸還（第一輪已歸還但第二輪還在）
+    const sid2=assignments2[k];
+    if(sid2&&!returned2[k]&&!(sid&&!returned[k])){
+      const rst=roomStatus(slot,k);
+      if(rst==='overtime'||rst==='warn15'||rst==='warn30'){
+        const s=STORES.find(x=>x.id===sid2);
+        if(s)res.push({room,k,sid:sid2,name:s.name});
       }
     }
   });
@@ -483,31 +505,60 @@ function buildTable(){
   SLOTS.forEach(slot=>{
     h+=`<tr><td><div class="slot-label"><span class="slot-time">${slot}</span><span id="slotlbl-${encodeURIComponent(slot)}">${slotCountdownHTML(slot)}</span></div></td>`;
     ROOMS.forEach((room,i)=>{
-      const k=key(room,slot);const sid=assignments[k];
+      const k=key(room,slot);const sid=assignments[k];const sid2=assignments2[k];
       const borderL=getFloor(i)!==getFloor(i-1)&&i>0?'border-left:2px solid #c8cfe0;':'';
-      if(sid){
+
+      if(!sid&&!sid2){h+=`<td style="${borderL}"><div class="cell"></div></td>`;return;}
+
+      function cellContentV(sidX,sfX,clX,isRetX){
+        const sx=STORES.find(x=>x.id===sidX);
+        const cx=sx?color(sidX):{bg:'#eee',border:'#ccc',text:'#666'};
+        const cp=[];
+        if(clX.clientName)cp.push(`<span class="client-line">Name: ${clX.clientName}</span>`);
+        if(clX.segment)cp.push(`<span class="client-line">Seg: ${clX.segment}</span>`);
+        const sp=[];
+        if(sfX.ca)sp.push(`<span class="staff-line">🧑‍💼 ${sfX.ca}</span>`);
+        if(sfX.expert)sp.push(`<span class="staff-line">💡 ${sfX.expert}</span>`);
+        if(sfX.runner)sp.push(`<span class="staff-line">🏃 ${sfX.runner}</span>`);
+        const infoTxt=(cp.length||sp.length)?`${cp.join('')}${cp.length&&sp.length?'<hr class="cell-divider"/>':''}${sp.join('')}`:'';
+        const retTxt=isRetX?`<span class="done-label">已歸還</span>`:'';
+        const retSty=isRetX?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${cx.bg};border:2px solid ${cx.border};color:${cx.text};`;
+        return `<div class="assigned" style="${retSty}"><span class="store-name-lbl">${sx?sx.name:''}</span>${infoTxt}${retTxt}</div>`;
+      }
+
+      if(sid&&!sid2){
         const s=STORES.find(x=>x.id===sid);const c=s?color(sid):{bg:'#eee',border:'#ccc',text:'#666'};
-        const rst=roomStatus(slot,k);
-        const isRet=returned[k]||false;
-        const sf=staff[k]||{};
-        const cl=clients[k]||{};
-        const clientParts=[];
-        if(cl.clientName)clientParts.push(`<span class="client-line">Name: ${cl.clientName}</span>`);
-        if(cl.segment)clientParts.push(`<span class="client-line">Seg: ${cl.segment}</span>`);
-        const staffParts3=[];
-        if(sf.ca)staffParts3.push(`<span class="staff-line">🧑‍💼 ${sf.ca}</span>`);
-        if(sf.expert)staffParts3.push(`<span class="staff-line">💡 ${sf.expert}</span>`);
-        if(sf.runner)staffParts3.push(`<span class="staff-line">🏃 ${sf.runner}</span>`);
-        const staffTxt='';
-        const hasClientD=clientParts.length>0;
-        const hasStaffD=staffParts3.length>0;
-        const clientTxt=(hasClientD||hasStaffD)?
-          `${hasClientD?clientParts.join(''):''}${hasClientD&&hasStaffD?'<hr class="cell-divider"/>':''}${staffParts3.join('')}`:'';
-        const retTxt=isRet?`<span class="done-label">已歸還</span>`:'';
-        const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${c.bg};border:2px solid ${c.border};color:${c.text};`;
+        const rst=roomStatus(slot,k);const isRet=returned[k]||false;
         const cellClass=isRet?'cell filled cell-done':cellCls(rst,true);
-        h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}"><div class="assigned" style="${retStyle}"><span class="store-name-lbl">${s?s.name:''}</span>${staffTxt}${clientTxt}${retTxt}</div></div></td>`;
-      }else{h+=`<td style="${borderL}"><div class="cell"></div></td>`;}
+        h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}">${cellContentV(sid,staff[k]||{},clients[k]||{},isRet)}</div></td>`;
+      } else if(sid&&sid2){
+        const isRet=returned[k]||false;
+        const isRet2=returned2[k]||false;
+        const s2=STORES.find(x=>x.id===sid2);
+        const c2=s2?color(sid2):{bg:'#eee',border:'#ccc',text:'#666'};
+        const uid='v'+k.replace(/[^a-z0-9]/gi,'');
+        const r2status=isRet2?'✓ 已歸還':'進行中';
+        const r2hdrBg=isRet2?'background:#e8e8e8;color:#777;':`background:${c2.border};color:#fff;`;
+        const border=isRet2?'1.5px solid #e0e0e0':`2px solid ${c2.border}`;
+        const rst=roomStatus(slot,k);
+        const cellClass=cellCls(rst,true);
+        h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}">
+          <div style="border:${border};border-radius:8px;width:100%;overflow:hidden;display:flex;flex-direction:column;">
+            <div class="round-hdr-v" id="vh1-${uid}" onclick="toggleRoundV('${uid}',1)" style="background:#e8e8e8;color:#777;">
+              <span>第一輪 · ${STORES.find(x=>x.id===sid)?.name||''} · ✓ 已歸還</span><span class="chv">▾</span>
+            </div>
+            <div id="vd1-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
+              ${cellContentV(sid,staff[k]||{},clients[k]||{},isRet)}
+            </div>
+            <div class="round-hdr-v" id="vh2-${uid}" onclick="toggleRoundV('${uid}',2)" style="${r2hdrBg}">
+              <span>第二輪 · ${s2?s2.name:''} · ${r2status}</span><span class="chv">▾</span>
+            </div>
+            <div id="vd2-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
+              ${cellContentV(sid2,staff2[k]||{},clients2[k]||{},isRet2)}
+            </div>
+          </div>
+        </div></td>`;
+      }
     });
     h+='</tr>';
   });
@@ -530,18 +581,24 @@ function buildCards(){
   sortedSlots.forEach(slot=>{
     const st=slotStatus(slot);        // 用於排序和格子狀態
     const stRaw=slotStatusRaw(slot);  // 用於卡片標頭顯示（原始場次時間）
-    // 手機版卡片閃爍狀態
+    // 手機版卡片閃爍狀態（含第二輪）
     const hasOtRoom=ROOMS.some(room=>{
       const k=key(room,slot);
-      return assignments[k]&&!returned[k]&&roomStatus(slot,k)==='overtime';
+      const r1=(assignments[k]&&!returned[k]&&roomStatus(slot,k)==='overtime');
+      const r2=(assignments2[k]&&!returned2[k]&&roomStatus(slot,k)==='overtime');
+      return r1||r2;
     });
     const hasW15Room=ROOMS.some(room=>{
       const k=key(room,slot);
-      return assignments[k]&&!returned[k]&&roomStatus(slot,k)==='warn15';
+      const r1=(assignments[k]&&!returned[k]&&roomStatus(slot,k)==='warn15');
+      const r2=(assignments2[k]&&!returned2[k]&&roomStatus(slot,k)==='warn15');
+      return r1||r2;
     });
     const hasW30Room=ROOMS.some(room=>{
       const k=key(room,slot);
-      return assignments[k]&&!returned[k]&&roomStatus(slot,k)==='warn30';
+      const r1=(assignments[k]&&!returned[k]&&roomStatus(slot,k)==='warn30');
+      const r2=(assignments2[k]&&!returned2[k]&&roomStatus(slot,k)==='warn30');
+      return r1||r2;
     });
     let cardCls='slot-card';
     if(hasOtRoom)cardCls+=' card-ot';
@@ -559,33 +616,69 @@ function buildCards(){
         <div style="background:${fc.bg};color:${fc.text};font-size:11px;font-weight:600;padding:4px 12px;letter-spacing:.5px;">${floor}</div>
         <div class="slot-rooms">`;
       floorRooms.forEach(({r:room,i})=>{
-        const k=key(room,slot);const sid=assignments[k];
-        if(sid){
-          const s=STORES.find(x=>x.id===sid);const c=s?color(sid):{bg:'#eee',border:'#ccc',text:'#666'};
-          const rst=roomStatus(slot,k);
+        const k=key(room,slot);const sid=assignments[k];const sid2=assignments2[k];
+        if(sid||sid2){
           const isRet=returned[k]||false;
-          let rCls='room-cell has-store';
-          if(isRet)rCls+=' cell-done';
-          else if(rst==='overtime')rCls+=' cell-ot';
-          else if(rst==='warn15')rCls+=' cell-w15';
-          else if(rst==='warn30')rCls+=' cell-w30';
-          const retTxt=isRet?`<span class="done-lbl-m">已歸還</span>`:'';
-          const sf=staff[k]||{};
-          const cl=clients[k]||{};
-          const mCParts=[];
-          if(cl.clientName)mCParts.push(`<span class="client-lbl-m">Name: ${cl.clientName}</span>`);
-          if(cl.segment)mCParts.push(`<span class="client-lbl-m">Seg: ${cl.segment}</span>`);
-          const mSParts=[];
-          if(sf.ca)mSParts.push(`<span class="staff-lbl-m">🧑‍💼 ${sf.ca}</span>`);
-          if(sf.expert)mSParts.push(`<span class="staff-lbl-m">💡 ${sf.expert}</span>`);
-          if(sf.runner)mSParts.push(`<span class="staff-lbl-m">🏃 ${sf.runner}</span>`);
-          const hasC=mCParts.length>0;
-          const hasS=mSParts.length>0;
-          const staffTxt='';
-          const clientTxt=(hasC||hasS)?`${mCParts.join('')}${hasC&&hasS?'<hr class="cell-divider-m"/>':''}${mSParts.join('')}`:'';
-          const cellStyle=isRet?'opacity:.5;background:#f5f5f5;border:1px solid #e0e0e0;':`background:${c.bg};border:1.5px solid ${c.border};`;
-          const nameColor=isRet?'color:#aaa;':`color:${c.text};`;
-          html+=`<div class="${rCls}" style="${cellStyle}"><span class="room-lbl" style="${nameColor}opacity:.7;">${room}</span><span class="store-nm" style="${nameColor}">${s?s.name:''}</span>${clientTxt}${retTxt}</div>`;
+          const isRet2=returned2[k]||false;
+
+          function mCellContent(sidX,sfX,clX,isRetX){
+            const sx=STORES.find(x=>x.id===sidX);
+            const cx=sx?color(sidX):{bg:'#eee',border:'#ccc',text:'#666'};
+            const cp=[];
+            if(clX.clientName)cp.push(`<span class="client-lbl-m">Name: ${clX.clientName}</span>`);
+            if(clX.segment)cp.push(`<span class="client-lbl-m">Seg: ${clX.segment}</span>`);
+            const sp=[];
+            if(sfX.ca)sp.push(`<span class="staff-lbl-m">🧑‍💼 ${sfX.ca}</span>`);
+            if(sfX.expert)sp.push(`<span class="staff-lbl-m">💡 ${sfX.expert}</span>`);
+            if(sfX.runner)sp.push(`<span class="staff-lbl-m">🏃 ${sfX.runner}</span>`);
+            const infoTxt=(cp.length||sp.length)?`${cp.join('')}${cp.length&&sp.length?'<hr class="cell-divider-m"/>':''}${sp.join('')}`:'';
+            const retTxt=isRetX?`<span class="done-lbl-m">已歸還</span>`:'';
+            const cellSty=isRetX?'opacity:.5;background:#f5f5f5;border:1px solid #e0e0e0;':`background:${cx.bg};border:1.5px solid ${cx.border};`;
+            const nameSty=isRetX?'color:#aaa;':`color:${cx.text};`;
+            return {sx,cx,cellSty,nameSty,infoTxt,retTxt};
+          }
+
+          if(sid&&!sid2){
+            // 單輪
+            const rst=roomStatus(slot,k);
+            let rCls='room-cell has-store';
+            if(isRet)rCls+=' cell-done';
+            else if(rst==='overtime')rCls+=' cell-ot';
+            else if(rst==='warn15')rCls+=' cell-w15';
+            else if(rst==='warn30')rCls+=' cell-w30';
+            const {sx,cx,cellSty,nameSty,infoTxt,retTxt}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet);
+            html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.7;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}</span>${infoTxt}${retTxt}</div>`;
+          } else if(sid&&sid2){
+            // 兩輪
+            const rst=roomStatus(slot,k);
+            let rCls='room-cell has-store';
+            if(rst==='overtime')rCls+=' cell-ot';
+            else if(rst==='warn15')rCls+=' cell-w15';
+            else if(rst==='warn30')rCls+=' cell-w30';
+            const s2=STORES.find(x=>x.id===sid2);
+            const c2=s2?color(sid2):{bg:'#eee',border:'#ccc',text:'#666'};
+            const uid2='m'+k.replace(/[^a-z0-9]/gi,'');
+            const r2hdrBg=isRet2?'background:#e8e8e8;color:#777;':`background:${c2.border};color:#fff;`;
+            const r2status=isRet2?'✓ 已歸還':'進行中';
+            const border2=isRet2?'border:1px solid #e0e0e0;':`border:1.5px solid ${c2.border};`;
+            const {sx:s1x}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet);
+            const {infoTxt:info2,retTxt:ret2}=mCellContent(sid2,staff2[k]||{},clients2[k]||{},isRet2);
+            html+=`<div class="${rCls}" style="${border2}border-radius:8px;overflow:hidden;background:#fff;">
+              <span class="room-lbl" style="padding:4px 8px 0;display:block;color:#aaa;opacity:.7;font-size:10px;">${room}</span>
+              <div style="font-size:9px;font-weight:600;padding:3px 8px;background:#e8e8e8;color:#777;display:flex;justify-content:space-between;cursor:pointer;" onclick="toggleRoundV('${uid2}',1)">
+                <span>第一輪 · ${s1x?s1x.name:''} · ✓ 已歸還</span><span id="vh1-${uid2}" class="chv">▾</span>
+              </div>
+              <div id="vd1-${uid2}" style="overflow:hidden;max-height:0;transition:max-height .25s;padding:0 8px;">
+                ${mCellContent(sid,staff[k]||{},clients[k]||{},isRet).infoTxt}
+              </div>
+              <div style="font-size:9px;font-weight:600;padding:3px 8px;${r2hdrBg}display:flex;justify-content:space-between;cursor:pointer;" onclick="toggleRoundV('${uid2}',2)">
+                <span>第二輪 · ${s2?s2.name:''} · ${r2status}</span><span id="vh2-${uid2}" class="chv">▾</span>
+              </div>
+              <div id="vd2-${uid2}" style="overflow:hidden;max-height:0;transition:max-height .25s;padding:0 8px;">
+                ${info2}${ret2}
+              </div>
+            </div>`;
+          }
         }else{html+=`<div class="room-cell"><span class="room-empty">${room}</span></div>`;}
       });
       html+=`</div></div>`;
@@ -597,22 +690,34 @@ function buildCards(){
 
 function updateClock(){document.getElementById('clock').textContent='現在時間：'+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 
+function toggleRoundV(uid,n){
+  const hdr=document.getElementById(`vh${n}-${uid}`);
+  const det=document.getElementById(`vd${n}-${uid}`);
+  if(!hdr||!det)return;
+  const isOpen=det.style.maxHeight!=='0px'&&det.style.maxHeight!=='';
+  det.style.maxHeight=isOpen?'0px':'500px';
+  hdr.classList.toggle('open',!isOpen);
+}
+
 function tick(){
-  const total=Object.keys(assignments).length;
+  const total=Object.keys(assignments).length+Object.keys(assignments2).length;
   document.getElementById('emptyNotice').style.display=total===0?'block':'none';
   buildTable();buildCards();updateAlert();updateClock();updateSlotLabels();buildTokenDisplay();
 }
 // 輕量更新：每3秒更新時間、警示、手機卡片排序
 function updateCellStyles(){
-  // 更新電腦版格子和列的警示樣式（不重建DOM）
   SLOTS.forEach(slot=>{
     ROOMS.forEach(room=>{
       const k=key(room,slot);
       const sid=assignments[k];
-      if(!sid)return;
+      const sid2=assignments2[k];
+      if(!sid&&!sid2)return;
       const isRet=returned[k]||false;
-      if(isRet)return;
-      const rst=roomStatus(slot,k);
+      const isRet2=returned2[k]||false;
+      // 如果有第二輪且未歸還，用第二輪狀態；否則用第一輪
+      const activeK=k; // 兩輪都用同一個 key 算時段狀態
+      if(isRet&&isRet2)return; // 兩輪都歸還，不需閃爍
+      const rst=roomStatus(slot,activeK);
       const cell=document.querySelector(`.cell[data-k="${CSS.escape(k)}"]`);
       if(!cell)return;
       cell.classList.remove('cell-ot','cell-w15','cell-w30','cell-done');
@@ -640,6 +745,10 @@ onValue(dbRef,snap=>{
   staff=d.staff||{};
   tokens=d.tokens||{};
   clients=d.clients||{};
+  assignments2=d.assignments2||{};
+  staff2=d.staff2||{};
+  clients2=d.clients2||{};
+  returned2=d.returned2||{};
   tick();buildTokenDisplay();
 });
 
