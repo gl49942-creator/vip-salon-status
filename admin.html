@@ -7,7 +7,7 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f0f0ee;color:#1a1a1a;padding:36px;}
-h1{font-size:28px;font-weight:600;margin-bottom:6px;letter-spacing:.5px;}
+h1{font-size:28px;font-weight:600;margin:0;letter-spacing:.5px;}
 .admin-badge{display:inline-block;background:#E1F5EE;border:1px solid #0F6E56;color:#085041;font-size:13px;font-weight:500;padding:4px 12px;border-radius:12px;margin-bottom:16px;}
 .sync-bar{display:flex;align-items:center;gap:8px;font-size:13px;color:#888;margin-bottom:22px;}
 .sync-dot{width:9px;height:9px;border-radius:50%;background:#ccc;flex-shrink:0;}
@@ -115,12 +115,15 @@ tbody td:last-child{border-right:none;}
 </style>
 </head>
 <body>
-<h1>VIP SALON STATUS</h1>
+<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <h1 style="margin:0;">VIP SALON STATUS</h1>
+    <div class="admin-badge">✎ 管理員模式</div>
+    <div class="sync-bar"><div class="sync-dot" id="syncDot"></div><span id="syncStatus">連線中...</span></div>
+  </div>
+  <button class="settings-toggle" onclick="toggleSettings()">⚙️ 自訂時段 / 包廂 / 店鋪設定</button>
+</div>
 
-<div class="admin-badge">✎ 管理員模式</div>
-<div class="sync-bar"><div class="sync-dot" id="syncDot"></div><span id="syncStatus">連線中...</span></div>
-
-<button class="settings-toggle" onclick="toggleSettings()">⚙️ 自訂時段 / 包廂 / 店鋪設定</button>
 <div class="settings-panel" id="settingsPanel">
   <div class="settings-grid">
     <div class="settings-section">
