@@ -541,7 +541,7 @@ function buildTable(){
         const r2hdrBg=isRet2?'background:#e8e8e8;color:#777;':`background:${c2.border};color:#fff;`;
         const border=isRet2?'1.5px solid #e0e0e0':`2px solid ${c2.border}`;
         const rst=roomStatus(slot,k);
-        const cellClass=cellCls(rst,true);
+        const cellClass=(isRet&&isRet2)?'cell filled cell-done':cellCls(rst,true);
         h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}">
           <div style="border:${border};border-radius:8px;width:100%;overflow:hidden;display:flex;flex-direction:column;">
             <div class="round-hdr-v" id="vh1-${uid}" onclick="toggleRoundV('${uid}',1)" style="background:#e8e8e8;color:#777;">
@@ -716,17 +716,15 @@ function updateCellStyles(){
       if(!sid&&!sid2)return;
       const isRet=returned[k]||false;
       const isRet2=returned2[k]||false;
-      // 如果有第二輪且未歸還，用第二輪狀態；否則用第一輪
-      const activeK=k; // 兩輪都用同一個 key 算時段狀態
-      if(isRet&&isRet2)return; // 兩輪都歸還，不需閃爍
-      const rst=roomStatus(slot,activeK);
+      // 兩輪都歸還，或只有第一輪且已歸還 → 不閃爍
+      if(isRet&&(!sid2||isRet2))return;
+      const rst=roomStatus(slot,k);
       const cell=document.querySelector(`.cell[data-k="${CSS.escape(k)}"]`);
       if(!cell)return;
       cell.classList.remove('cell-ot','cell-w15','cell-w30','cell-done');
       if(rst==='overtime')cell.classList.add('cell-ot');
       else if(rst==='warn15')cell.classList.add('cell-w15');
       else if(rst==='warn30')cell.classList.add('cell-w30');
-      else if(rst==='done')cell.classList.add('cell-done');
     });
   });
 }
