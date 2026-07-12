@@ -690,14 +690,14 @@ function buildCards(){
 
 function updateClock(){document.getElementById('clock').textContent='現在時間：'+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 
-function toggleRoundV(uid,n){
+window.toggleRoundV=function(uid,n){
   const hdr=document.getElementById(`vh${n}-${uid}`);
   const det=document.getElementById(`vd${n}-${uid}`);
   if(!hdr||!det)return;
   const isOpen=det.style.maxHeight!=='0px'&&det.style.maxHeight!=='';
   det.style.maxHeight=isOpen?'0px':'500px';
   hdr.classList.toggle('open',!isOpen);
-}
+};
 
 function tick(){
   const total=Object.keys(assignments).length+Object.keys(assignments2).length;
