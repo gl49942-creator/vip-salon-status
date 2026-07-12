@@ -264,15 +264,8 @@ function slotStatus(slot){
     const startMs=base.getTime()+(p.startH*60+p.startM)*60*1000;
     const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
     if(now.getTime()<startMs)return'upcoming';
-    if(now.getTime()>endMs){
-      const si=SLOTS.indexOf(slot);
-      if(si===SLOTS.length-1)return'done';
-      const nextP=parseSlot(SLOTS[si+1]);
-      if(nextP){
-        const nextStartMs=base.getTime()+(nextP.startH*60+nextP.startM)*60*1000;
-        if(now.getTime()>=nextStartMs)return'done';
-      }
-    }
+    // 場次已過時間，所有包廂都已歸還 → done
+    if(now.getTime()>endMs)return'done';
     return'active';
   }
   return worst;

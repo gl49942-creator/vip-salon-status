@@ -389,6 +389,23 @@ function roomStatus(slot,k){
 }
 function slotStatus(slot){
   const order=['overtime','warn15','warn30','active','upcoming','done'];
+  const p=parseSlot(slot);
+  if(!p)return'upcoming';
+  const now=new Date();
+  const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const startMs=base.getTime()+(p.startH*60+p.startM)*60*1000;
+  const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
+  // 還沒開始
+  if(now.getTime()<startMs)return'upcoming';
+  // 已結束且所有包廂歸還
+  if(now.getTime()>endMs){
+    const hasUnreturned=ROOMS.some(room=>{
+      const k=key(room,slot);
+      return (assignments[k]&&!returned[k])||(assignments2[k]&&!returned2[k]);
+    });
+    if(!hasUnreturned)return'done';
+  }
+  // 進行中：找最差狀態
   let worst='upcoming';
   ROOMS.forEach(room=>{
     const k=key(room,slot);
