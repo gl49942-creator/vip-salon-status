@@ -116,12 +116,12 @@ tbody td:last-child{border-right:none;}
 </head>
 <body>
 <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+  <h1 style="margin:0;">VIP SALON STATUS</h1>
   <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <h1 style="margin:0;">VIP SALON STATUS</h1>
     <div class="admin-badge">✎ 管理員模式</div>
     <div class="sync-bar"><div class="sync-dot" id="syncDot"></div><span id="syncStatus">連線中...</span></div>
+    <button class="settings-toggle" onclick="toggleSettings()">⚙️ 自訂時段 / 包廂 / 店鋪設定</button>
   </div>
-  <button class="settings-toggle" onclick="toggleSettings()">⚙️ 自訂時段 / 包廂 / 店鋪設定</button>
 </div>
 
 <div class="settings-panel" id="settingsPanel">
