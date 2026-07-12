@@ -502,7 +502,14 @@ function buildTable(){
   roomRow+='</tr>';
 
   let h=`<thead>${floorRow}${roomRow}</thead><tbody>`;
-  SLOTS.forEach(slot=>{
+  const statusOrder={'overtime':0,'warn15':1,'warn30':2,'active':3,'upcoming':4,'done':5};
+  const sortedSlots=[...SLOTS].sort((a,b)=>{
+    const sa=slotStatus(a),sb=slotStatus(b);
+    const oa=statusOrder[sa]??6,ob=statusOrder[sb]??6;
+    if(oa!==ob)return oa-ob;
+    return SLOTS.indexOf(a)-SLOTS.indexOf(b);
+  });
+  sortedSlots.forEach(slot=>{
     h+=`<tr><td><div class="slot-label"><span class="slot-time">${slot}</span><span id="slotlbl-${encodeURIComponent(slot)}">${slotCountdownHTML(slot)}</span></div></td>`;
     ROOMS.forEach((room,i)=>{
       const k=key(room,slot);const sid=assignments[k];const sid2=assignments2[k];
@@ -523,7 +530,7 @@ function buildTable(){
         const infoTxt=(cp.length||sp.length)?`${cp.join('')}${cp.length&&sp.length?'<hr class="cell-divider"/>':''}${sp.join('')}`:'';
         const retTxt=isRetX?`<span class="done-label">已歸還</span>`:'';
         const retSty=isRetX?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${cx.bg};border:2px solid ${cx.border};color:${cx.text};`;
-        return `<div class="assigned" style="${retSty}"><span class="store-name-lbl">${sx?sx.name:''}</span>${infoTxt}${retTxt}</div>`;
+        const guestLbl=clX.guests?` <span style="font-size:10px;font-weight:400;opacity:.75;">（餐飲 ${clX.guests} 人）</span>`:'';return `<div class="assigned" style="${retSty}"><span class="store-name-lbl">${sx?sx.name:''}${guestLbl}</span>${infoTxt}${retTxt}</div>`;
       }
 
       if(sid&&!sid2){
@@ -647,7 +654,7 @@ function buildCards(){
             else if(rst==='warn15')rCls+=' cell-w15';
             else if(rst==='warn30')rCls+=' cell-w30';
             const {sx,cx,cellSty,nameSty,infoTxt,retTxt}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet);
-            html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.7;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}</span>${infoTxt}${retTxt}</div>`;
+            const gLbl=clX.guests?` <span style="font-size:9px;opacity:.75;">（餐飲 ${clX.guests} 人）</span>`:'';html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.7;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}${gLbl}</span>${infoTxt}${retTxt}</div>`;
           } else if(sid&&sid2){
             // 兩輪
             const rst=roomStatus(slot,k);

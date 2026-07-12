@@ -186,7 +186,7 @@ tbody td:last-child{border-right:none;}
         <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">姓名</label>
         <input id="clientNameInput" type="text" placeholder="輸入客人姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
       </div>
-      <div style="margin-bottom:0;">
+      <div style="margin-bottom:8px;">
         <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Segment</label>
         <select id="clientSegInput" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff;">
           <option value="">-- 請選擇 --</option>
@@ -201,6 +201,10 @@ tbody td:last-child{border-right:none;}
           <option value="Prospect">Prospect</option>
           <option value="New">New</option>
         </select>
+      </div>
+      <div style="margin-bottom:0;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">餐飲人數</label>
+        <input id="clientGuestsInput" type="number" min="0" placeholder="輸入人數（可手動）" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
       </div>
     </div>
 
@@ -370,6 +374,31 @@ function buildLegend(){
   });
 }
 
+function roomStatus(slot,k){
+  const p=parseSlot(slot);if(!p)return'upcoming';
+  const now=new Date();
+  const base=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const startMs=base.getTime()+(p.startH*60+p.startM)*60*1000;
+  const endMs=base.getTime()+(p.endH*60+p.endM)*60*1000;
+  if(now.getTime()<startMs)return'upcoming';
+  const msToEnd=endMs-now.getTime();
+  if(msToEnd<0)return'overtime';
+  if(msToEnd<=15*60*1000)return'warn15';
+  if(msToEnd<=30*60*1000)return'warn30';
+  return'active';
+}
+function slotStatus(slot){
+  const order=['overtime','warn15','warn30','active','upcoming','done'];
+  let worst='upcoming';
+  ROOMS.forEach(room=>{
+    const k=key(room,slot);
+    if((assignments[k]&&!returned[k])||(assignments2[k]&&!returned2[k])){
+      const st=roomStatus(slot,k);
+      if(order.indexOf(st)<order.indexOf(worst))worst=st;
+    }
+  });
+  return worst;
+}
 function parseSlot(slot){
   const parts=slot.replace(/[–—-]/,'|').split('|');
   if(parts.length<2)return null;
@@ -461,7 +490,14 @@ function buildGrid(){
   floorRow+='</tr>';roomRow+='</tr>';
 
   let h=`<thead>${floorRow}${roomRow}</thead><tbody>`;
-  SLOTS.forEach(slot=>{
+  const statusOrder={'overtime':0,'warn15':1,'warn30':2,'active':3,'upcoming':4,'done':5};
+  const sortedSlots=[...SLOTS].sort((a,b)=>{
+    const sa=slotStatus(a),sb=slotStatus(b);
+    const oa=statusOrder[sa]??6,ob=statusOrder[sb]??6;
+    if(oa!==ob)return oa-ob;
+    return SLOTS.indexOf(a)-SLOTS.indexOf(b);
+  });
+  sortedSlots.forEach(slot=>{
     h+=`<tr><td><div class="slot-label"><span class="slot-time-txt">${slot}</span><span id="slotlbl-${encodeURIComponent(slot)}">${slotCountdownHTML(slot)}</span></div></td>`;
     ROOMS.forEach((room,i)=>{
       const borderL=getFloor(i)!==getFloor(i-1)&&i>0?'border-left:2px solid #c8cfe0;':'';
@@ -523,8 +559,9 @@ function cellInfoHTML(sid,sfObj,clObj,isRet,k,slot,isR2=false){
       <button class="return-btn ${isRet?'unreturned':''}" onclick="toggleReturn2('${ke}',event)" title="${isRet?'取消歸還':'標記已歸還'}">${isRet?'↩':'✓'}</button>
     </div>`;
   }
+  const guestLabel=clObj.guests?` <span style="font-size:11px;font-weight:400;opacity:.8;">（餐飲 ${clObj.guests} 人）</span>`:'';
   return `<div class="assigned" draggable="${isRet?'false':'true'}" style="${retStyle||`background:${c.bg};border:2px solid ${c.border};color:${c.text};`}">
-    <span class="store-label" style="${isRet?'color:#aaa;':''}">${s.name}</span>
+    <span class="store-label" style="${isRet?'color:#aaa;':''}">${s.name}${guestLabel}</span>
     ${infoLabel}${retLabel}
     <button class="remove-btn" onclick="removeCell('${ke}',event)">✕</button>
     ${!isRet?`<button class="staff-btn" onclick="openInfoModal('${ke}','${sname}','${slote}',event)" title="填寫資訊">✏️</button>`:''}
@@ -646,6 +683,7 @@ window.openInfoModal2=(k,storeName,slot,e)=>{
   document.getElementById('caInput').value=sf.ca||'';
   document.getElementById('expertInput').value=sf.expert||'';
   document.getElementById('runnerInput').value=sf.runner||'';
+  document.getElementById('clientGuestsInput').value=cl.guests||'';
   const segSel=document.getElementById('clientSegInput');
   segSel.value=cl.segment||'';
   if(cl.segment&&segSel.value!==cl.segment){
@@ -671,6 +709,7 @@ window.openInfoModal=(k,storeName,slot,e)=>{
   document.getElementById('caInput').value=sf.ca||'';
   document.getElementById('expertInput').value=sf.expert||'';
   document.getElementById('runnerInput').value=sf.runner||'';
+  document.getElementById('clientGuestsInput').value=cl.guests||'';
   const segSel=document.getElementById('clientSegInput');
   segSel.value=cl.segment||'';
   if(cl.segment&&segSel.value!==cl.segment){
@@ -705,14 +744,15 @@ window.confirmInfo=()=>{
   const clientId=document.getElementById('clientIdInput').value.trim();
   const clientName=document.getElementById('clientNameInput').value.trim();
   const segment=document.getElementById('clientSegInput').value.trim();
+  const guests=document.getElementById('clientGuestsInput').value.trim();
   const ca=document.getElementById('caInput').value.trim();
   const expert=document.getElementById('expertInput').value.trim();
   const runner=document.getElementById('runnerInput').value.trim();
   if(isR2){
-    if(clientId||clientName||segment){clients2[k]={clientId,clientName,segment};}else{delete clients2[k];}
+    if(clientId||clientName||segment||guests){clients2[k]={clientId,clientName,segment,guests};}else{delete clients2[k];}
     if(ca||expert||runner){staff2[k]={ca,expert,runner};}else{delete staff2[k];}
   }else{
-    if(clientId||clientName||segment){clients[k]={clientId,clientName,segment};}else{delete clients[k];}
+    if(clientId||clientName||segment||guests){clients[k]={clientId,clientName,segment,guests};}else{delete clients[k];}
     if(ca||expert||runner){staff[k]={ca,expert,runner};}else{delete staff[k];}
   }
   closeInfoModal();render();push();
@@ -731,28 +771,28 @@ window.addEventListener('DOMContentLoaded',()=>{
       c.name.toLowerCase().includes(q)
     ).slice(0,8);
     if(!matches.length){box.style.display='none';return;}
-    box.innerHTML=matches.map(c=>`<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #eee;line-height:1.5;" onmousedown="selectClient('${c.id.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}','${c.segment.replace(/'/g,"\\'")}','${(c.ca||'').replace(/'/g,"\\'")}')">
+    box.innerHTML=matches.map(c=>`<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #eee;line-height:1.5;" onmousedown="selectClient('${c.id.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}','${c.segment.replace(/'/g,"\\'")}','${(c.ca||'').replace(/'/g,"\\'")}','${(c.guests||'').replace(/'/g,"\\'")}')">
     <strong>${c.id}</strong> ${c.name}
     <span style="color:#534AB7;font-size:11px;margin-left:6px;">${c.segment}</span>
     ${c.ca?`<span style="color:#888;font-size:11px;margin-left:6px;">CA: ${c.ca}</span>`:''}
+    ${c.guests?`<span style="color:#888;font-size:11px;margin-left:6px;">餐飲: ${c.guests}人</span>`:''}
   </div>`).join('');
     box.style.display='block';
   });
 });
-window.selectClient=(id,name,segment,ca)=>{
+window.selectClient=(id,name,segment,ca,guests)=>{
   document.getElementById('clientIdInput').value=id;
   document.getElementById('clientNameInput').value=name;
-  // 設定 segment 下拉選單
   const segSel=document.getElementById('clientSegInput');
   segSel.value=segment;
   if(segment&&segSel.value!==segment){
     const opt=document.createElement('option');
     opt.value=segment;opt.textContent=segment;
-    segSel.appendChild(opt);
-    segSel.value=segment;
+    segSel.appendChild(opt);segSel.value=segment;
   }
   const caInput=document.getElementById('caInput');
   if(ca&&!caInput.value.trim())caInput.value=ca;
+  if(guests)document.getElementById('clientGuestsInput').value=guests;
   document.getElementById('clientSuggestions').style.display='none';
 };
 
@@ -768,7 +808,7 @@ window.loadClientExcel=(e)=>{
 
       // 找標頭列（含 Dream ID 或 ID 的那列）
       let headerRow=-1;
-      let idCol=-1,lastNameCol=-1,firstNameCol=-1,segCol=-1,caCol=-1;
+      let idCol=-1,lastNameCol=-1,firstNameCol=-1,segCol=-1,caCol=-1,guestCol=-1;
       for(let r=0;r<Math.min(10,data.length);r++){
         const row=data[r]||[];
         const lower=row.map(h=>String(h||'').toLowerCase());
@@ -780,6 +820,7 @@ window.loadClientExcel=(e)=>{
             if(h==='名字'||h==='first name'||h==='firstname')firstNameCol=i;
             if((h.includes('顧客層級')||h==='segment'||h==='seg')&&segCol===-1)segCol=i;
             if((h==='ca名字'||h==='ca name'||h==='ca')&&caCol===-1)caCol=i;
+            if((h.includes('幾位友人')||h.includes('友人')||h==='guests'||h==='guest')&&guestCol===-1)guestCol=i;
           });
           break;
         }
@@ -795,7 +836,8 @@ window.loadClientExcel=(e)=>{
         const name=[lastName,firstName].filter(Boolean).join(' ');
         const segment=segCol>=0?String(row[segCol]||'').trim():'';
         const ca=caCol>=0?String(row[caCol]||'').trim():'';
-        return{id,name,segment,ca};
+        const guests=guestCol>=0&&row[guestCol]!==undefined&&row[guestCol]!==''?String(row[guestCol]).trim():'';
+        return{id,name,segment,ca,guests};
       }).filter(c=>c&&c.id);
 
       // 存進 Firebase
@@ -938,7 +980,7 @@ window.exportExcel=function(){
       const history=snap.val()||{};
       const wb=XLSX.utils.book_new();
       const dates=Object.keys(history).sort();
-      const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','Expert','Runner','CA','已歸還']];
+      const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','餐飲人數','Expert','Runner','CA','已歸還']];
       dates.forEach(date=>{
         const d=history[date];if(!d)return;
         const slotList=d.slots||[],roomList=d.rooms||[],storeList=d.stores||[];
@@ -958,7 +1000,7 @@ window.exportExcel=function(){
               const sfInfo=sfData[k]||{};
               const clInfo=(d.clients||{})[k]||{};
               const retVal=retData[k]?'✓':'';
-              rows.push([dateShown?'':date,slotShown?'':slot,room,'第一輪',s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.expert||'',sfInfo.runner||'',sfInfo.ca||'',retVal]);
+              rows.push([dateShown?'':date,slotShown?'':slot,room,'第一輪',s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',clInfo.guests||'',sfInfo.expert||'',sfInfo.runner||'',sfInfo.ca||'',retVal]);
               dateShown=true;slotShown=true;
             }
             // 第二輪
@@ -967,7 +1009,7 @@ window.exportExcel=function(){
               const sfInfo2=sfData2[k]||{};
               const clInfo2=(d.clients2||{})[k]||{};
               const retVal2=retData2[k]?'✓':'';
-              rows.push([dateShown?'':date,slotShown&&sid?'':slot,room,'第二輪',s2?s2.name:'',clInfo2.clientId||'',clInfo2.clientName||'',clInfo2.segment||'',sfInfo2.expert||'',sfInfo2.runner||'',sfInfo2.ca||'',retVal2]);
+              rows.push([dateShown?'':date,slotShown&&sid?'':slot,room,'第二輪',s2?s2.name:'',clInfo2.clientId||'',clInfo2.clientName||'',clInfo2.segment||'',clInfo2.guests||'',sfInfo2.expert||'',sfInfo2.runner||'',sfInfo2.ca||'',retVal2]);
               dateShown=true;slotShown=true;
             }
           });
