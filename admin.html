@@ -122,12 +122,28 @@ tbody td:last-child{border-right:none;}
 </style>
 </head>
 <body>
-<div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
-  <h1 style="margin:0;line-height:1;">VIP SALON STATUS</h1>
-  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <div class="admin-badge">✎ 管理員模式</div>
-    <div class="sync-bar"><div class="sync-dot" id="syncDot"></div><span id="syncStatus">連線中...</span></div>
-    <button class="settings-toggle" onclick="toggleSettings()">⚙️ 自訂時段 / 包廂 / 店鋪設定</button>
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;">
+  <!-- 左側：標題 + 控制列 -->
+  <div style="flex:1;min-width:0;">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+      <h1 style="margin:0;line-height:1;">VIP SALON STATUS</h1>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div class="admin-badge">✎ 管理員模式</div>
+        <div class="sync-bar"><div class="sync-dot" id="syncDot"></div><span id="syncStatus">連線中...</span></div>
+        <button class="settings-toggle" onclick="toggleSettings()">⚙️ 自訂時段 / 包廂 / 店鋪設定</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右側：候位區 -->
+  <div id="queuePanel" style="width:240px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);max-height:340px;overflow-y:auto;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:600;color:#1F2D45;">📋 包廂排隊區</div>
+      <button onclick="openQueueAddModal()" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;">＋ 新增</button>
+    </div>
+    <div id="queueList" style="display:flex;flex-direction:column;gap:8px;min-height:60px;">
+      <div id="queueEmpty" style="font-size:12px;color:#bbb;text-align:center;padding:16px 0;">目前無候位</div>
+    </div>
   </div>
 </div>
 
@@ -163,23 +179,7 @@ tbody td:last-child{border-right:none;}
   <span id="clientListStatus" style="font-size:12px;color:#888;align-self:center;"></span>
 </div>
 
-<!-- 主版面：包廂表格 + 候位區 -->
-<div style="display:flex;gap:16px;align-items:flex-start;">
-  <div style="flex:1;min-width:0;overflow-x:auto;">
-    <div class="grid-wrap"><table id="grid"></table></div>
-  </div>
-
-  <!-- 候位區 -->
-  <div id="queuePanel" style="width:240px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="font-size:15px;font-weight:600;color:#1F2D45;">📋 包廂排隊區</div>
-      <button onclick="openQueueAddModal()" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;">＋ 新增</button>
-    </div>
-    <div id="queueList" style="display:flex;flex-direction:column;gap:8px;min-height:60px;">
-      <div id="queueEmpty" style="font-size:12px;color:#bbb;text-align:center;padding:16px 0;">目前無候位</div>
-    </div>
-  </div>
-</div>
+<div class="grid-wrap"><table id="grid"></table></div>
 
 <!-- TOKEN 借用管理 -->
 <div style="margin-top:32px;">
@@ -623,18 +623,33 @@ function buildGrid(){
     cell.addEventListener('dragleave',()=>cell.classList.remove('drag-over'));
     cell.addEventListener('dragenter',e=>e.preventDefault());
     cell.addEventListener('drop',e=>{
-      e.preventDefault();cell.classList.remove('drag-over');if(!dragStore)return;
+      e.preventDefault();cell.classList.remove('drag-over');
       const k=key(decodeURIComponent(cell.dataset.room),decodeURIComponent(cell.dataset.slot));
+
+      // 候位卡片拖曳
+      const qIdx=e.dataTransfer.getData('queueIdx');
+      if(qIdx!==''){
+        const idx=parseInt(qIdx);
+        const item=queue[idx];
+        if(!item)return;
+        assignments[k]=item.storeId;
+        if(item.client&&Object.keys(item.client).length>0)clients[k]=item.client;
+        if(item.staff&&Object.keys(item.staff).length>0)staff[k]=item.staff;
+        delete returned[k];
+        queue.splice(idx,1);
+        buildQueuePanel();render();push();
+        return;
+      }
+
+      // 一般店鋪拖曳
+      if(!dragStore)return;
       if(dragFrom&&dragFrom!==k){
-        // 把原本格子的所有資訊帶到新位置
         if(staff[dragFrom])  {staff[k]=staff[dragFrom];  delete staff[dragFrom];}  else delete staff[k];
         if(clients[dragFrom]){clients[k]=clients[dragFrom];delete clients[dragFrom];}else delete clients[k];
-        // 第二輪也一起帶走
         if(assignments2[dragFrom]){assignments2[k]=assignments2[dragFrom];delete assignments2[dragFrom];}else delete assignments2[k];
         if(staff2[dragFrom])  {staff2[k]=staff2[dragFrom];  delete staff2[dragFrom];}  else delete staff2[k];
         if(clients2[dragFrom]){clients2[k]=clients2[dragFrom];delete clients2[dragFrom];}else delete clients2[k];
         delete returned2[dragFrom];delete returned2[k];
-        // 歸還狀態不帶過去（新位置視為未歸還）
         delete returned[dragFrom];
         delete returned[k];
         delete assignments[dragFrom];
@@ -1004,37 +1019,10 @@ function buildQueuePanel(){
       </div>
       <button class="queue-del" onclick="removeQueue(${idx})">✕</button>`;
     card.addEventListener('dragstart',e=>{
-      e.dataTransfer.setData('queueIdx', idx);
+      e.dataTransfer.setData('queueIdx', String(idx));
       e.dataTransfer.effectAllowed='move';
     });
     list.appendChild(card);
-  });
-  // Also update cell drop handlers to accept queue items
-  updateCellDropForQueue();
-}
-
-function updateCellDropForQueue(){
-  document.querySelectorAll('.cell').forEach(cell=>{
-    cell.addEventListener('dragover',e=>{e.preventDefault();});
-    cell.addEventListener('drop',e=>{
-      const qIdx=e.dataTransfer.getData('queueIdx');
-      if(qIdx==='')return;
-      e.preventDefault();e.stopPropagation();
-      const idx=parseInt(qIdx);
-      const item=queue[idx];
-      if(!item)return;
-      const room=decodeURIComponent(cell.dataset.room);
-      const slot=decodeURIComponent(cell.dataset.slot);
-      const k=key(room,slot);
-      // Assign store
-      assignments[k]=item.storeId;
-      // Carry client/staff info
-      if(item.client&&Object.keys(item.client).length>0)clients[k]=item.client;
-      if(item.staff&&Object.keys(item.staff).length>0)staff[k]=item.staff;
-      // Remove from queue
-      queue.splice(idx,1);
-      buildQueuePanel();render();push();
-    });
   });
 }
 
