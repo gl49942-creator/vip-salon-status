@@ -126,20 +126,18 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   <div class="alert-stores" id="alertStores"></div>
 </div>
 
-<!-- 電腦版：主版面含候位區 -->
+<!-- 電腦版：候位區（橫向，在表格上方）+ 表格 -->
 <div class="table-view">
-  <div style="display:flex;gap:16px;align-items:flex-start;">
-    <div style="flex:1;min-width:0;overflow-x:auto;">
-      <div class="grid-wrap"><table id="grid"></table></div>
-    </div>
-    <!-- 電腦版候位區 -->
-    <div id="queueViewDesktop" style="width:220px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
-      <div style="font-size:14px;font-weight:600;color:#1F2D45;margin-bottom:10px;">📋 包廂排隊區</div>
-      <div id="queueViewList" style="display:flex;flex-direction:column;gap:8px;">
-        <div id="queueViewEmpty" style="font-size:12px;color:#bbb;text-align:center;padding:16px 0;">目前無候位</div>
+  <!-- 橫向候位區 -->
+  <div id="queueViewDesktop" style="background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:12px;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap;">
+      <div style="font-size:14px;font-weight:600;color:#1F2D45;white-space:nowrap;">📋 包廂排隊區</div>
+      <div id="queueViewList" style="display:flex;flex-direction:row;gap:8px;flex-wrap:nowrap;overflow-x:auto;flex:1;min-width:0;padding-bottom:2px;">
+        <div id="queueViewEmpty" style="font-size:12px;color:#bbb;padding:4px 0;">目前無候位</div>
       </div>
     </div>
   </div>
+  <div class="grid-wrap"><table id="grid"></table></div>
 </div>
 
 <!-- 手機版 -->
@@ -749,6 +747,9 @@ function buildQueueView(){
         const guestTxt=cl.guests?`（餐飲 ${cl.guests} 人）`:'';
         const card=document.createElement('div');
         card.className='queue-v-card';
+        card.style.minWidth='140px';
+        card.style.maxWidth='180px';
+        card.style.flexShrink='0';
         card.innerHTML=`<div class="queue-v-num">順位 ${idx+1}</div>
           <div class="queue-v-store">${item.storeName||''}${guestTxt}</div>
           <div class="queue-v-info">

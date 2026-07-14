@@ -122,10 +122,10 @@ tbody td:last-child{border-right:none;}
 </style>
 </head>
 <body>
-<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:12px;">
+<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:8px;">
   <!-- 左側：標題 + 控制列 -->
-  <div style="flex:1;min-width:0;">
-    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+  <div style="flex-shrink:0;">
+    <div style="display:flex;align-items:center;flex-wrap:wrap;gap:12px;">
       <h1 style="margin:0;line-height:1;">VIP SALON STATUS</h1>
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div class="admin-badge">✎ 管理員模式</div>
@@ -135,14 +135,14 @@ tbody td:last-child{border-right:none;}
     </div>
   </div>
 
-  <!-- 右側：候位區 -->
-  <div id="queuePanel" style="width:240px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);max-height:340px;overflow-y:auto;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-      <div style="font-size:15px;font-weight:600;color:#1F2D45;">📋 包廂排隊區</div>
-      <button onclick="openQueueAddModal()" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;">＋ 新增</button>
-    </div>
-    <div id="queueList" style="display:flex;flex-direction:column;gap:8px;min-height:60px;">
-      <div id="queueEmpty" style="font-size:12px;color:#bbb;text-align:center;padding:16px 0;">目前無候位</div>
+  <!-- 右側：候位區（橫向） -->
+  <div id="queuePanel" style="flex:1;min-width:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:10px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <div style="font-size:14px;font-weight:600;color:#1F2D45;white-space:nowrap;">📋 包廂排隊區</div>
+      <button onclick="openQueueAddModal()" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;white-space:nowrap;">＋ 新增</button>
+      <div id="queueList" style="display:flex;flex-direction:row;gap:8px;flex-wrap:nowrap;overflow-x:auto;flex:1;min-width:0;padding-bottom:2px;">
+        <div id="queueEmpty" style="font-size:12px;color:#bbb;padding:4px 0;">目前無候位</div>
+      </div>
     </div>
   </div>
 </div>
@@ -995,7 +995,6 @@ function buildQueuePanel(){
   const list=document.getElementById('queueList');
   const empty=document.getElementById('queueEmpty');
   if(!list)return;
-  // clear existing cards (keep empty notice)
   Array.from(list.children).forEach(c=>{if(c.id!=='queueEmpty')c.remove();});
   if(!queue||queue.length===0){if(empty)empty.style.display='block';return;}
   if(empty)empty.style.display='none';
@@ -1004,6 +1003,9 @@ function buildQueuePanel(){
     card.className='queue-card';
     card.draggable=true;
     card.dataset.queueIdx=idx;
+    card.style.minWidth='140px';
+    card.style.maxWidth='180px';
+    card.style.flexShrink='0';
     const cl=item.client||{};
     const sf=item.staff||{};
     const guestTxt=cl.guests?`（餐飲 ${cl.guests} 人）`:'';
