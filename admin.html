@@ -80,6 +80,13 @@ tbody td:last-child{border-right:none;}
 .cell:hover .staff-btn,.assigned:hover .staff-btn,
 .cell:hover .client-btn,.assigned:hover .client-btn{opacity:1;}
 .ret-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:#e0e0e0;color:#888;}
+.queue-card{background:#f8f9fc;border:1px solid #dde3f0;border-radius:8px;padding:8px 10px;position:relative;cursor:grab;}
+.queue-card:active{cursor:grabbing;}
+.queue-num{font-size:10px;font-weight:700;color:#185FA5;margin-bottom:2px;}
+.queue-store{font-size:13px;font-weight:700;color:#1F2D45;margin-bottom:2px;}
+.queue-info{font-size:10px;color:#666;line-height:1.5;}
+.queue-del{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:#E24B4A;color:#fff;font-size:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+.queue-card.drag-over-q{background:#E6F1FB;border-color:#185FA5;}
 .round-hdr-a{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .round-hdr-a:hover{filter:brightness(.95);}
 .round-hdr-a .chv{font-size:9px;transition:transform .2s;}
@@ -155,7 +162,24 @@ tbody td:last-child{border-right:none;}
   <button class="action-btn" onclick="clearClientList()" style="background:#FCEBEB;border-color:#E24B4A;color:#A32D2D;">🗑 清除名單</button>
   <span id="clientListStatus" style="font-size:12px;color:#888;align-self:center;"></span>
 </div>
-<div class="grid-wrap"><table id="grid"></table></div>
+
+<!-- 主版面：包廂表格 + 候位區 -->
+<div style="display:flex;gap:16px;align-items:flex-start;">
+  <div style="flex:1;min-width:0;overflow-x:auto;">
+    <div class="grid-wrap"><table id="grid"></table></div>
+  </div>
+
+  <!-- 候位區 -->
+  <div id="queuePanel" style="width:240px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div style="font-size:15px;font-weight:600;color:#1F2D45;">📋 包廂排隊區</div>
+      <button onclick="openQueueAddModal()" style="font-size:12px;padding:4px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;">＋ 新增</button>
+    </div>
+    <div id="queueList" style="display:flex;flex-direction:column;gap:8px;min-height:60px;">
+      <div id="queueEmpty" style="font-size:12px;color:#bbb;text-align:center;padding:16px 0;">目前無候位</div>
+    </div>
+  </div>
+</div>
 
 <!-- TOKEN 借用管理 -->
 <div style="margin-top:32px;">
@@ -167,6 +191,75 @@ tbody td:last-child{border-right:none;}
     <div id="tokenSummary" style="display:flex;gap:12px;"></div>
   </div>
   <div id="tokenGrid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+</div>
+
+<!-- 候位新增 Modal -->
+<div class="modal-overlay" id="queueModal">
+  <div class="modal" style="width:400px;">
+    <h3>新增候位</h3>
+    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">填寫後可拖曳至包廂格子分配</p>
+
+    <div style="margin-bottom:10px;">
+      <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">店鋪</label>
+      <select id="queueStoreSelect" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff;">
+        <option value="">-- 選擇店鋪 --</option>
+      </select>
+    </div>
+
+    <div style="border-top:1px solid #eee;padding-top:10px;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:.5px;margin-bottom:8px;">顧客資料</div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">ID <span style="font-size:11px;color:#aaa;">（輸入後自動帶出）</span></label>
+        <input id="queueClientId" type="text" placeholder="輸入客人 ID" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+        <div id="queueSuggestions" style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;display:none;max-height:130px;overflow-y:auto;background:#fff;position:relative;z-index:10;"></div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">姓名</label>
+        <input id="queueClientName" type="text" placeholder="客人姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Segment</label>
+        <select id="queueSegment" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;background:#fff;">
+          <option value="">-- 請選擇 --</option>
+          <option value="Prestige">Prestige</option>
+          <option value="VVIC">VVIC</option>
+          <option value="VIC">VIC</option>
+          <option value="Aspiring Repeaters">Aspiring Repeaters</option>
+          <option value="Repeaters">Repeaters</option>
+          <option value="One-Timers">One-Timers</option>
+          <option value="Promising One-Timers">Promising One-Timers</option>
+          <option value="Sleeper">Sleeper</option>
+          <option value="Prospect">Prospect</option>
+          <option value="New">New</option>
+        </select>
+      </div>
+      <div style="margin-bottom:0;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">餐飲人數</label>
+        <input id="queueGuests" type="number" min="0" placeholder="輸入人數" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid #eee;padding-top:10px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:.5px;margin-bottom:8px;">服務人員</div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">CA</label>
+        <input id="queueCA" type="text" placeholder="CA 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Expert</label>
+        <input id="queueExpert" type="text" placeholder="Expert 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div>
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Runner</label>
+        <input id="queueRunner" type="text" placeholder="Runner 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="ext-opt" onclick="confirmQueueAdd()" style="text-align:center;background:#1F2D45;color:#fff;border:none;">新增候位</button>
+      <button class="ext-cancel" onclick="closeQueueModal()">取消</button>
+    </div>
+  </div>
 </div>
 
 <!-- 合併 Modal：客人資料 + 服務人員 -->
@@ -270,6 +363,7 @@ let assignments2={};  // {key: storeId} 第二輪
 let staff2={};
 let clients2={};
 let returned2={};
+let queue=[];         // [{id, storeId, storeName, client, staff}]
 let clientList=[];    // [{id, name, segment}] 從Excel載入
 const TOKEN_TOTAL=5;
 let dragStore=null,dragFrom=null,isSyncing=false;
@@ -285,7 +379,7 @@ function setSyncStatus(s){
 }
 function push(){
   isSyncing=true;setSyncStatus('saving');
-  set(dbRef,{assignments,returned,staff,tokens,clients,assignments2,staff2,clients2,returned2,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
+  set(dbRef,{assignments,returned,staff,tokens,clients,assignments2,staff2,clients2,returned2,queue,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
@@ -302,7 +396,8 @@ onValue(dbRef,snap=>{
   staff2=d.staff2||{};
   clients2=d.clients2||{};
   returned2=d.returned2||{};
-  setSyncStatus('connected');buildAll();buildTokenSection();
+  queue=d.queue||[];
+  setSyncStatus('connected');buildAll();buildTokenSection();buildQueuePanel();
 });
 
 // Settings
@@ -879,8 +974,134 @@ window.clearClientList=()=>{
   document.getElementById('clientListStatus').style.color='#888';
   updateSegmentDropdown([]);
 };
-window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};assignments2={};staff2={};clients2={};returned2={};render();buildTokenSection();push();}};
-function buildAll(){buildLegend();buildGrid();render();}
+window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};assignments2={};staff2={};clients2={};returned2={};queue=[];render();buildTokenSection();buildQueuePanel();push();}};
+// ── 候位排隊 ──────────────────────────────
+function buildQueuePanel(){
+  const list=document.getElementById('queueList');
+  const empty=document.getElementById('queueEmpty');
+  if(!list)return;
+  // clear existing cards (keep empty notice)
+  Array.from(list.children).forEach(c=>{if(c.id!=='queueEmpty')c.remove();});
+  if(!queue||queue.length===0){if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
+  queue.forEach((item,idx)=>{
+    const card=document.createElement('div');
+    card.className='queue-card';
+    card.draggable=true;
+    card.dataset.queueIdx=idx;
+    const cl=item.client||{};
+    const sf=item.staff||{};
+    const guestTxt=cl.guests?`（餐飲 ${cl.guests} 人）`:'';
+    card.innerHTML=`
+      <div class="queue-num">順位 ${idx+1}</div>
+      <div class="queue-store">${item.storeName||''}${guestTxt}</div>
+      <div class="queue-info">
+        ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
+        ${cl.segment?`Seg: ${cl.segment}<br>`:''}
+        ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
+        ${sf.expert?`💡 ${sf.expert}<br>`:''}
+        ${sf.runner?`🏃 ${sf.runner}`:''}
+      </div>
+      <button class="queue-del" onclick="removeQueue(${idx})">✕</button>`;
+    card.addEventListener('dragstart',e=>{
+      e.dataTransfer.setData('queueIdx', idx);
+      e.dataTransfer.effectAllowed='move';
+    });
+    list.appendChild(card);
+  });
+  // Also update cell drop handlers to accept queue items
+  updateCellDropForQueue();
+}
+
+function updateCellDropForQueue(){
+  document.querySelectorAll('.cell').forEach(cell=>{
+    cell.addEventListener('dragover',e=>{e.preventDefault();});
+    cell.addEventListener('drop',e=>{
+      const qIdx=e.dataTransfer.getData('queueIdx');
+      if(qIdx==='')return;
+      e.preventDefault();e.stopPropagation();
+      const idx=parseInt(qIdx);
+      const item=queue[idx];
+      if(!item)return;
+      const room=decodeURIComponent(cell.dataset.room);
+      const slot=decodeURIComponent(cell.dataset.slot);
+      const k=key(room,slot);
+      // Assign store
+      assignments[k]=item.storeId;
+      // Carry client/staff info
+      if(item.client&&Object.keys(item.client).length>0)clients[k]=item.client;
+      if(item.staff&&Object.keys(item.staff).length>0)staff[k]=item.staff;
+      // Remove from queue
+      queue.splice(idx,1);
+      buildQueuePanel();render();push();
+    });
+  });
+}
+
+window.openQueueAddModal=()=>{
+  // Populate store select
+  const sel=document.getElementById('queueStoreSelect');
+  sel.innerHTML='<option value="">-- 選擇店鋪 --</option>'+STORES.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
+  document.getElementById('queueClientId').value='';
+  document.getElementById('queueClientName').value='';
+  document.getElementById('queueSegment').value='';
+  document.getElementById('queueGuests').value='';
+  document.getElementById('queueCA').value='';
+  document.getElementById('queueExpert').value='';
+  document.getElementById('queueRunner').value='';
+  document.getElementById('queueSuggestions').style.display='none';
+  document.getElementById('queueModal').classList.add('open');
+  setTimeout(()=>document.getElementById('queueClientId').focus(),100);
+};
+window.closeQueueModal=()=>{document.getElementById('queueModal').classList.remove('open');};
+window.confirmQueueAdd=()=>{
+  const sel=document.getElementById('queueStoreSelect');
+  const storeId=sel.value;
+  if(!storeId){alert('請選擇店鋪');return;}
+  const s=STORES.find(x=>x.id===storeId);
+  const client={
+    clientId:document.getElementById('queueClientId').value.trim(),
+    clientName:document.getElementById('queueClientName').value.trim(),
+    segment:document.getElementById('queueSegment').value.trim(),
+    guests:document.getElementById('queueGuests').value.trim(),
+  };
+  const sf={
+    ca:document.getElementById('queueCA').value.trim(),
+    expert:document.getElementById('queueExpert').value.trim(),
+    runner:document.getElementById('queueRunner').value.trim(),
+  };
+  queue.push({storeId,storeName:s?s.name:'',client,staff:sf});
+  closeQueueModal();buildQueuePanel();push();
+};
+window.removeQueue=(idx)=>{
+  if(!confirm('確定移除此候位？'))return;
+  queue.splice(idx,1);buildQueuePanel();push();
+};
+
+// Queue modal - client search
+window.addEventListener('DOMContentLoaded',()=>{
+  const qInput=document.getElementById('queueClientId');
+  if(!qInput)return;
+  qInput.addEventListener('input',function(){
+    const q=this.value.trim().toLowerCase();
+    const box=document.getElementById('queueSuggestions');
+    if(!q||clientList.length===0){box.style.display='none';return;}
+    const matches=clientList.filter(c=>c.id.toLowerCase().includes(q)||c.name.toLowerCase().includes(q)).slice(0,6);
+    if(!matches.length){box.style.display='none';return;}
+    box.innerHTML=matches.map(c=>`<div style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:0.5px solid #eee;" onmousedown="selectQueueClient('${c.id.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}','${c.segment.replace(/'/g,"\\'")}','${(c.ca||'').replace(/'/g,"\\'")}','${(c.guests||'').replace(/'/g,"\\'")}')"><strong>${c.id}</strong> ${c.name} <span style="color:#534AB7;font-size:11px;">${c.segment}</span>${c.guests?`<span style="color:#888;font-size:11px;margin-left:4px;">餐飲:${c.guests}人</span>`:''}</div>`).join('');
+    box.style.display='block';
+  });
+});
+window.selectQueueClient=(id,name,segment,ca,guests)=>{
+  document.getElementById('queueClientId').value=id;
+  document.getElementById('queueClientName').value=name;
+  document.getElementById('queueSegment').value=segment;
+  if(ca)document.getElementById('queueCA').value=ca;
+  if(guests)document.getElementById('queueGuests').value=guests;
+  document.getElementById('queueSuggestions').style.display='none';
+};
+
+function buildAll(){buildLegend();buildGrid();render();buildQueuePanel();}
 
 // ── TOKEN 借用管理 ──────────────────────────────
 function totalLent(){

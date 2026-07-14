@@ -74,7 +74,10 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   .staff-line{font-size:10px;opacity:.85;display:block;line-height:1.6;}
   .cell-divider{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 0;}
   .client-line{font-size:10px;font-weight:500;display:block;line-height:1.6;color:#3C3489;}
-  .round-hdr-v{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
+  .queue-v-card{background:#f8f9fc;border:1px solid #dde3f0;border-radius:8px;padding:8px 10px;}
+  .queue-v-num{font-size:10px;font-weight:700;color:#185FA5;margin-bottom:2px;}
+  .queue-v-store{font-size:12px;font-weight:700;color:#1F2D45;margin-bottom:2px;}
+  .queue-v-info{font-size:10px;color:#666;line-height:1.5;}
   .round-hdr-v:hover{filter:brightness(.95);}
   .round-hdr-v .chv{font-size:9px;transition:transform .2s;}
   .round-hdr-v.open .chv{transform:rotate(180deg);}
@@ -123,8 +126,37 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   <div class="alert-stores" id="alertStores"></div>
 </div>
 
-<div class="table-view"><div class="grid-wrap"><table id="grid"></table></div></div>
-<div class="card-view" id="slotCards"></div>
+<!-- 電腦版：主版面含候位區 -->
+<div class="table-view">
+  <div style="display:flex;gap:16px;align-items:flex-start;">
+    <div style="flex:1;min-width:0;overflow-x:auto;">
+      <div class="grid-wrap"><table id="grid"></table></div>
+    </div>
+    <!-- 電腦版候位區 -->
+    <div id="queueViewDesktop" style="width:220px;flex-shrink:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+      <div style="font-size:14px;font-weight:600;color:#1F2D45;margin-bottom:10px;">📋 包廂排隊區</div>
+      <div id="queueViewList" style="display:flex;flex-direction:column;gap:8px;">
+        <div id="queueViewEmpty" style="font-size:12px;color:#bbb;text-align:center;padding:16px 0;">目前無候位</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 手機版 -->
+<div class="card-view">
+  <!-- 手機版候位按鈕 -->
+  <div id="mobileQueueBtn" style="margin-bottom:12px;">
+    <button onclick="showMobileQueue()" style="width:100%;padding:10px;border-radius:10px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">📋 包廂排隊區</button>
+  </div>
+  <!-- 手機版卡片 -->
+  <div id="slotCards"></div>
+  <!-- 手機版候位頁面 -->
+  <div id="mobileQueueView" style="display:none;">
+    <button onclick="hideMobileQueue()" style="margin-bottom:12px;padding:8px 16px;border-radius:8px;border:1px solid #ddd;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;">← 返回包廂</button>
+    <div id="mobileQueueList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    <div id="mobileQueueEmpty" style="font-size:13px;color:#bbb;text-align:center;padding:24px 0;display:none;">目前無候位</div>
+  </div>
+</div>
 
 <!-- TOKEN 狀況 -->
 <div id="tokenDisplay" style="margin-top:24px;display:none;">
@@ -156,6 +188,7 @@ let ROOMS=Array.from({length:9},(_,i)=>`包廂 ${i+1}`);
 let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'},{id:'tnn',name:'TN'},{id:'101',name:'TPE 101'},{id:'a3',name:'A3'},{id:'lvb',name:'LVB'},{id:'sogo',name:'SOGO'}];
 let assignments={},returned={},staff={},tokens={},clients={};
 let assignments2={},staff2={},clients2={},returned2={};
+let queue=[];
 const TOKEN_TOTAL=5;
 const color=id=>COLORS[STORES.findIndex(s=>s.id===id)%COLORS.length]||COLORS[0];
 const key=(r,s)=>`${r}||${s}`;
@@ -701,6 +734,72 @@ window.toggleRoundV=function(uid,n){
   hdr.classList.toggle('open',!isOpen);
 };
 
+function buildQueueView(){
+  const items=queue||[];
+  // Desktop
+  const dl=document.getElementById('queueViewList');
+  const de=document.getElementById('queueViewEmpty');
+  if(dl){
+    Array.from(dl.children).forEach(c=>{if(c.id!=='queueViewEmpty')c.remove();});
+    if(items.length===0){if(de)de.style.display='block';}
+    else{
+      if(de)de.style.display='none';
+      items.forEach((item,idx)=>{
+        const cl=item.client||{},sf=item.staff||{};
+        const guestTxt=cl.guests?`（餐飲 ${cl.guests} 人）`:'';
+        const card=document.createElement('div');
+        card.className='queue-v-card';
+        card.innerHTML=`<div class="queue-v-num">順位 ${idx+1}</div>
+          <div class="queue-v-store">${item.storeName||''}${guestTxt}</div>
+          <div class="queue-v-info">
+            ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
+            ${cl.segment?`Seg: ${cl.segment}<br>`:''}
+            ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
+            ${sf.expert?`💡 ${sf.expert}<br>`:''}
+            ${sf.runner?`🏃 ${sf.runner}`:''}
+          </div>`;
+        dl.appendChild(card);
+      });
+    }
+  }
+  // Mobile
+  const ml=document.getElementById('mobileQueueList');
+  const me=document.getElementById('mobileQueueEmpty');
+  if(ml){
+    ml.innerHTML='';
+    if(items.length===0){if(me)me.style.display='block';}
+    else{
+      if(me)me.style.display='none';
+      items.forEach((item,idx)=>{
+        const cl=item.client||{},sf=item.staff||{};
+        const guestTxt=cl.guests?`（餐飲 ${cl.guests} 人）`:'';
+        const card=document.createElement('div');
+        card.style.cssText='background:#f8f9fc;border:1px solid #dde3f0;border-radius:10px;padding:12px 14px;';
+        card.innerHTML=`<div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:3px;">順位 ${idx+1}</div>
+          <div style="font-size:14px;font-weight:700;color:#1F2D45;margin-bottom:4px;">${item.storeName||''}${guestTxt}</div>
+          <div style="font-size:12px;color:#666;line-height:1.7;">
+            ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
+            ${cl.segment?`Seg: ${cl.segment}<br>`:''}
+            ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
+            ${sf.expert?`💡 ${sf.expert}<br>`:''}
+            ${sf.runner?`🏃 ${sf.runner}`:''}
+          </div>`;
+        ml.appendChild(card);
+      });
+    }
+  }
+}
+window.showMobileQueue=()=>{
+  document.getElementById('mobileQueueBtn').style.display='none';
+  document.getElementById('slotCards').style.display='none';
+  document.getElementById('mobileQueueView').style.display='block';
+};
+window.hideMobileQueue=()=>{
+  document.getElementById('mobileQueueBtn').style.display='block';
+  document.getElementById('slotCards').style.display='block';
+  document.getElementById('mobileQueueView').style.display='none';
+};
+
 function tick(){
   const total=Object.keys(assignments).length+Object.keys(assignments2).length;
   document.getElementById('emptyNotice').style.display=total===0?'block':'none';
@@ -729,7 +828,7 @@ function updateCellStyles(){
   });
 }
 
-function lightTick(){updateAlert();updateClock();updateSlotLabels();buildTable();buildCards();updateCellStyles();buildTokenDisplay();}
+function lightTick(){updateAlert();updateClock();updateSlotLabels();buildTable();buildCards();updateCellStyles();buildTokenDisplay();buildQueueView();}
 
 onValue(dbRef,snap=>{
   document.getElementById('syncDot').className='sync-dot connected';
@@ -749,7 +848,8 @@ onValue(dbRef,snap=>{
   staff2=d.staff2||{};
   clients2=d.clients2||{};
   returned2=d.returned2||{};
-  tick();buildTokenDisplay();
+  queue=d.queue||[];
+  tick();buildTokenDisplay();buildQueueView();
 });
 
 function buildTokenDisplay(){
