@@ -80,13 +80,13 @@ tbody td:last-child{border-right:none;}
 .cell:hover .staff-btn,.assigned:hover .staff-btn,
 .cell:hover .client-btn,.assigned:hover .client-btn{opacity:1;}
 .ret-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:#e0e0e0;color:#888;}
-.queue-card{background:#1F2D45;border-radius:8px;padding:8px 12px;position:relative;cursor:grab;min-width:140px;max-width:180px;flex-shrink:0;}
+.queue-card{background:#fff;border:1px solid #d8d7d4;border-radius:8px;padding:8px 12px;position:relative;cursor:grab;min-width:140px;max-width:180px;flex-shrink:0;}
 .queue-card:active{cursor:grabbing;}
-.queue-num{font-size:10px;font-weight:500;color:#7BAEDE;margin-bottom:3px;}
-.queue-store{font-size:13px;font-weight:500;color:#fff;margin-bottom:3px;}
-.queue-info{font-size:11px;color:#93AECB;line-height:1.6;}
+.queue-num{font-size:10px;font-weight:500;color:#999;margin-bottom:3px;}
+.queue-store{font-size:13px;font-weight:600;color:#1F2D45;margin-bottom:3px;}
+.queue-info{font-size:11px;color:#666;line-height:1.6;}
 .queue-del{position:absolute;top:6px;right:6px;width:16px;height:16px;border-radius:50%;background:#E24B4A;color:#fff;font-size:10px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
-.queue-card.drag-over-q{opacity:.7;outline:2px solid #7BAEDE;}
+.queue-card.drag-over-q{background:#E6F1FB;border-color:#185FA5;}
 .round-hdr-a{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .round-hdr-a:hover{filter:brightness(.95);}
 .round-hdr-a .chv{font-size:9px;transition:transform .2s;}
@@ -136,9 +136,9 @@ tbody td:last-child{border-right:none;}
   </div>
 
   <!-- 右側：候位區（橫向） -->
-  <div id="queuePanel" style="flex:1;min-width:0;background:#fff;border-radius:12px;border:1px solid #e0e0e0;padding:8px 14px;box-shadow:0 2px 8px rgba(0,0,0,.06);">
+  <div id="queuePanel" style="flex:1;min-width:0;background:#e4e3e0;border-radius:12px;border:1px solid #ccc;padding:8px 14px;">
     <div style="display:flex;align-items:center;gap:10px;">
-      <div style="font-size:13px;font-weight:600;color:#1F2D45;white-space:nowrap;">📋 包廂排隊區</div>
+      <div style="font-size:13px;font-weight:600;color:#444;white-space:nowrap;">📋 包廂排隊區</div>
       <button onclick="openQueueAddModal()" style="font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;white-space:nowrap;">＋ 新增</button>
       <div id="queueList" style="display:flex;flex-direction:row;gap:8px;flex-wrap:nowrap;overflow-x:auto;flex:1;min-width:0;">
         <div id="queueEmpty" style="font-size:12px;color:#bbb;padding:2px 0;">目前無候位</div>
