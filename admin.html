@@ -133,7 +133,6 @@ tbody td:last-child{border-right:none;}
   <div id="queuePanel" style="flex:1;min-width:0;background:#e4e3e0;border-radius:10px;border:1px solid #ccc;padding:6px 12px;">
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="font-size:13px;font-weight:600;color:#444;white-space:nowrap;">📋 包廂排隊區</div>
-      <button onclick="openQueueAddModal()" style="font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;white-space:nowrap;flex-shrink:0;">＋ 新增</button>
       <div id="queueList" style="display:flex;flex-direction:row;gap:6px;flex-wrap:nowrap;overflow-x:auto;flex:1;min-width:0;"></div>
     </div>
   </div>
@@ -1028,7 +1027,9 @@ function buildQueuePanel(){
       });
       slot.addEventListener('dragend',()=>{dragQueueIdx=null;});
     }else{
-      slot.innerHTML=`<span class="queue-slot-num">順位 ${idx+1}</span><div class="queue-slot-empty">空</div>`;
+      slot.style.cursor='pointer';
+      slot.innerHTML=`<span class="queue-slot-num">順位 ${idx+1}</span><div class="queue-slot-empty">＋</div>`;
+      slot.addEventListener('click',()=>openQueueAddModal(idx));
     }
 
     // Drop：接受從候位或包廂拖來的資料
@@ -1075,8 +1076,9 @@ function buildQueuePanel(){
   });
 }
 
-window.openQueueAddModal=()=>{
-  // Populate store select
+let pendingQueueSlotIdx=null;
+window.openQueueAddModal=(targetIdx=null)=>{
+  pendingQueueSlotIdx=targetIdx;
   const sel=document.getElementById('queueStoreSelect');
   sel.innerHTML='<option value="">-- 選擇店鋪 --</option>'+STORES.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
   document.getElementById('queueClientId').value='';
@@ -1107,11 +1109,15 @@ window.confirmQueueAdd=()=>{
     expert:document.getElementById('queueExpert').value.trim(),
     runner:document.getElementById('queueRunner').value.trim(),
   };
-  // 找第一個空格子
   while(queue.length<QUEUE_SLOTS)queue.push(null);
-  const emptyIdx=queue.findIndex(x=>x===null);
-  if(emptyIdx===-1){alert('候位區已滿（12個）');return;}
-  queue[emptyIdx]={storeId,storeName:s?s.name:'',client,staff:sf};
+  // 放到指定格子或第一個空格
+  let targetIdx=pendingQueueSlotIdx;
+  if(targetIdx===null||targetIdx===undefined){
+    targetIdx=queue.findIndex(x=>x===null);
+  }
+  if(targetIdx===-1){alert('候位區已滿（12個）');return;}
+  queue[targetIdx]={storeId,storeName:s?s.name:'',client,staff:sf};
+  pendingQueueSlotIdx=null;
   closeQueueModal();buildQueuePanel();push();
 };
 window.removeQueue=(idx)=>{
