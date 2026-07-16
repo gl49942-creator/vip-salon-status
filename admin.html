@@ -35,9 +35,13 @@ h1{font-size:28px;font-weight:600;margin:0;letter-spacing:.5px;}
 .store-chip{padding:8px 18px;border-radius:20px;font-size:14px;font-weight:500;cursor:grab;user-select:none;border:1.5px solid transparent;}
 .store-chip:active{cursor:grabbing;opacity:0.8;}
 .actions{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;}
-.action-btn{padding:9px 20px;border-radius:8px;border:1px solid #ccc;background:#fff;font-size:14px;cursor:pointer;font-family:inherit;}
-.action-btn:hover{background:#f0f0f0;}
-.btn-export{background:#1F2D45;color:#fff;border-color:#1F2D45;}
+.action-btn{padding:7px 16px;border:1px solid #D8D6D2;background:#fff;font-size:13px;cursor:pointer;font-family:inherit;color:#444;display:inline-flex;align-items:center;gap:5px;}
+.action-btn:hover{background:#f5f5f5;}
+.action-btn:first-child{border-radius:8px 0 0 8px;}
+.action-group{display:inline-flex;}
+.action-group .action-btn{border-radius:0;border-left:none;}
+.action-group .action-btn:last-child{border-radius:0 8px 8px 0;}
+.btn-export{background:#1F2D45;color:#fff;border-color:#1F2D45;border-radius:8px;margin-right:8px;}
 .btn-export:hover{background:#2a3d5c;}
 .tip{font-size:12px;color:#aaa;margin-bottom:14px;}
 
@@ -80,17 +84,18 @@ tbody td:last-child{border-right:none;}
 .cell:hover .staff-btn,.assigned:hover .staff-btn,
 .cell:hover .client-btn,.assigned:hover .client-btn{opacity:1;}
 .ret-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:#e0e0e0;color:#888;}
-.queue-slot{min-width:110px;max-width:140px;flex-shrink:0;border-radius:8px;border:1.5px dashed #ccc;background:#f5f4f1;min-height:76px;position:relative;transition:.15s;cursor:default;}
-.queue-slot.filled{border:1px solid #d8d7d4;background:#fff;cursor:grab;}
+.queue-slot{min-width:110px;max-width:140px;flex-shrink:0;border-radius:7px;border:1px dashed #C8C6C2;background:#E8E6E2;min-height:72px;position:relative;transition:.15s;cursor:default;}
+.queue-slot.filled{border:1px solid #D0CEC9;background:#FAFAF9;cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .queue-slot.filled:active{cursor:grabbing;}
 .queue-slot.drag-over{border-color:#185FA5 !important;background:#E6F1FB !important;}
-.queue-slot-num{font-size:9px;color:#bbb;padding:3px 6px 0;display:block;}
-.queue-slot-empty{font-size:10px;color:#ccc;text-align:center;padding:18px 4px 4px;}
-.queue-card{padding:4px 6px;}
-.queue-num{font-size:10px;font-weight:700;color:#185FA5;background:#E6F1FB;padding:1px 6px;border-radius:4px;display:inline-block;margin-bottom:4px;}
-.queue-store{font-size:11px;font-weight:600;color:#1F2D45;margin-bottom:2px;}
-.queue-info{font-size:10px;color:#666;line-height:1.5;}
-.queue-del{position:absolute;top:3px;right:3px;width:14px;height:14px;border-radius:50%;background:#E24B4A;color:#fff;font-size:9px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+.queue-slot-num{font-size:9px;color:#A8A6A2;padding:4px 7px 0;display:block;font-weight:500;}
+.queue-slot-empty{font-size:18px;color:#C0BDB8;text-align:center;padding:14px 4px 4px;line-height:1;}
+.queue-card{padding:4px 7px;}
+.queue-num{font-size:9px;font-weight:600;color:#2C3E6B;background:#DDE6F5;padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:3px;}
+.queue-store{font-size:11px;font-weight:600;color:#1F2D45;margin-bottom:2px;line-height:1.3;}
+.queue-info{font-size:10px;color:#777;line-height:1.5;}
+.queue-del{position:absolute;top:3px;right:3px;width:13px;height:13px;border-radius:50%;background:#ccc;color:#fff;font-size:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
+.queue-del:hover{background:#E24B4A;}
 .round-hdr-a{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .round-hdr-a:hover{filter:brightness(.95);}
 .round-hdr-a .chv{font-size:9px;transition:transform .2s;}
@@ -130,7 +135,7 @@ tbody td:last-child{border-right:none;}
   <h1 style="margin:0;line-height:1;">VIP SALON STATUS</h1>
   <div class="admin-badge">✎ 管理員模式</div>
   <!-- 候位區（管理員模式右邊） -->
-  <div id="queuePanel" style="flex:1;min-width:0;background:#e4e3e0;border-radius:10px;border:1px solid #ccc;padding:6px 12px;">
+  <div id="queuePanel" style="flex:1;min-width:0;background:#EEECEA;border-radius:10px;border:1px solid #D8D6D2;padding:6px 12px;">
     <div style="display:flex;align-items:center;gap:8px;">
       <div style="font-size:13px;font-weight:600;color:#444;white-space:nowrap;">📋 包廂排隊區</div>
       <div id="queueList" style="display:flex;flex-direction:row;gap:6px;flex-wrap:nowrap;overflow-x:auto;flex:1;min-width:0;"></div>
@@ -164,13 +169,15 @@ tbody td:last-child{border-right:none;}
 <div class="legend" id="legend"></div>
 <p class="tip">拖拉店鋪至格子分配；✕ 移除</p>
 <div class="actions">
-  <button class="action-btn" onclick="clearAll()">全部清除</button>
   <button class="action-btn btn-export" onclick="exportExcel()">📥 匯出報表</button>
-  <label class="action-btn" style="cursor:pointer;background:#E1F5EE;border-color:#0F6E56;color:#085041;">
-    📂 上傳客人名單
-    <input type="file" id="clientExcelInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="loadClientExcel(event)"/>
-  </label>
-  <button class="action-btn" onclick="clearClientList()" style="background:#FCEBEB;border-color:#E24B4A;color:#A32D2D;">🗑 清除名單</button>
+  <div class="action-group">
+    <button class="action-btn" onclick="clearAll()" style="border-radius:8px 0 0 8px;">✕ 全部清除</button>
+    <label class="action-btn" style="cursor:pointer;">
+      📂 上傳客人名單
+      <input type="file" id="clientExcelInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="loadClientExcel(event)"/>
+    </label>
+    <button class="action-btn" onclick="clearClientList()" style="border-radius:0 8px 8px 0;">🗑 清除名單</button>
+  </div>
   <span id="clientListStatus" style="font-size:12px;color:#888;align-self:center;"></span>
 </div>
 
