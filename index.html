@@ -738,7 +738,7 @@ window.toggleRoundV=function(uid,n){
 };
 
 function buildQueueView(){
-  const items=queue||[];
+  const items=(queue||[]).filter(x=>x!==null);
   // Desktop
   const dl=document.getElementById('queueViewList');
   const de=document.getElementById('queueViewEmpty');
