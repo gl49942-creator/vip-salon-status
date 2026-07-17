@@ -84,18 +84,14 @@ tbody td:last-child{border-right:none;}
 .cell:hover .staff-btn,.assigned:hover .staff-btn,
 .cell:hover .client-btn,.assigned:hover .client-btn{opacity:1;}
 .ret-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:#e0e0e0;color:#888;}
-.queue-slot{min-width:110px;max-width:140px;flex-shrink:0;border-radius:7px;border:1px dashed #C8C6C2;background:#E8E6E2;min-height:72px;position:relative;transition:.15s;cursor:default;}
-.queue-slot.filled{border:1px solid #D0CEC9;background:#FAFAF9;cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.06);}
-.queue-slot.filled:active{cursor:grabbing;}
-.queue-slot.drag-over{border-color:#185FA5 !important;background:#E6F1FB !important;}
-.queue-slot-num{font-size:9px;color:#A8A6A2;padding:4px 7px 0;display:block;font-weight:500;}
-.queue-slot-empty{font-size:18px;color:#C0BDB8;text-align:center;padding:14px 4px 4px;line-height:1;}
-.queue-card{padding:4px 7px;}
+.queue-card{background:#fff;border:1px solid #D0CEC9;border-radius:8px;padding:7px 10px;position:relative;cursor:grab;min-width:120px;max-width:160px;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+.queue-card:active{cursor:grabbing;}
 .queue-num{font-size:9px;font-weight:600;color:#2C3E6B;background:#DDE6F5;padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:3px;}
 .queue-store{font-size:11px;font-weight:600;color:#1F2D45;margin-bottom:2px;line-height:1.3;}
 .queue-info{font-size:10px;color:#777;line-height:1.5;}
 .queue-del{position:absolute;top:3px;right:3px;width:13px;height:13px;border-radius:50%;background:#ccc;color:#fff;font-size:8px;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0;}
 .queue-del:hover{background:#E24B4A;}
+.queue-card.drag-over-q{background:#E6F1FB;border-color:#185FA5;}
 .round-hdr-a{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
 .round-hdr-a:hover{filter:brightness(.95);}
 .round-hdr-a .chv{font-size:9px;transition:transform .2s;}
@@ -134,13 +130,6 @@ tbody td:last-child{border-right:none;}
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px;">
   <h1 style="margin:0;line-height:1;">VIP SALON STATUS</h1>
   <div class="admin-badge">✎ 管理員模式</div>
-  <!-- 候位區（管理員模式右邊） -->
-  <div id="queuePanel" style="flex:1;min-width:0;background:#EEECEA;border-radius:10px;border:1px solid #D8D6D2;padding:6px 12px;">
-    <div style="display:flex;align-items:center;gap:8px;">
-      <div style="font-size:13px;font-weight:600;color:#444;white-space:nowrap;">📋 包廂排隊區</div>
-      <div id="queueList" style="display:flex;flex-direction:row;gap:6px;flex-wrap:nowrap;overflow-x:auto;flex:1;min-width:0;"></div>
-    </div>
-  </div>
 </div>
 <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
   <div class="sync-bar"><div class="sync-dot" id="syncDot"></div><span id="syncStatus">連線中...</span></div>
@@ -165,9 +154,24 @@ tbody td:last-child{border-right:none;}
   <button class="apply-btn" onclick="applySettings()">套用設定並重新產生表格</button>
 </div>
 
-<div class="legend-label">店鋪列表（拖拉至格子進行分配）</div>
-<div class="legend" id="legend"></div>
-<p class="tip">拖拉店鋪至格子分配；✕ 移除</p>
+<!-- 店鋪列表 + 候位區同一行 -->
+<div style="display:flex;align-items:flex-start;gap:16px;margin-bottom:4px;">
+  <div style="flex-shrink:0;">
+    <div class="legend-label">店鋪列表（拖拉至格子進行分配）</div>
+    <div class="legend" id="legend"></div>
+    <p class="tip">拖拉店鋪至格子分配；✕ 移除</p>
+  </div>
+  <!-- 候位區 -->
+  <div id="queuePanel" style="flex:1;min-width:0;background:#EEECEA;border-radius:10px;border:1px solid #D8D6D2;padding:8px 12px;">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+      <div style="font-size:13px;font-weight:600;color:#444;">📋 包廂排隊區</div>
+      <button onclick="openQueueAddModal()" style="font-size:11px;padding:2px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;">＋ 新增</button>
+    </div>
+    <div id="queueList" style="display:flex;flex-direction:row;gap:6px;flex-wrap:wrap;min-height:36px;">
+      <div id="queueEmpty" style="font-size:12px;color:#bbb;padding:2px 0;">尚未有候位</div>
+    </div>
+  </div>
+</div>
 <div class="actions">
   <button class="action-btn btn-export" onclick="exportExcel()">📥 匯出報表</button>
   <div class="action-group">
@@ -638,7 +642,7 @@ function buildGrid(){
         if(item.client&&Object.keys(item.client).length>0)clients[k]=item.client;
         if(item.staff&&Object.keys(item.staff).length>0)staff[k]=item.staff;
         delete returned[k];
-        queue[idx]=null; // 清空該格
+        queue.splice(idx,1); // 動態移除
         buildQueuePanel();render();push();
         return;
       }
@@ -991,95 +995,62 @@ window.clearClientList=()=>{
   document.getElementById('clientListStatus').style.color='#888';
   updateSegmentDropdown([]);
 };
-window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};assignments2={};staff2={};clients2={};returned2={};queue=Array(12).fill(null);render();buildTokenSection();buildQueuePanel();push();}};
+window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};assignments2={};staff2={};clients2={};returned2={};queue=[];render();buildTokenSection();buildQueuePanel();push();}};
 // ── 候位排隊 ──────────────────────────────
 const QUEUE_SLOTS=12;
-let dragQueueIdx=null; // 從候位拖曳的索引
+let dragQueueIdx=null;
 
 function buildQueuePanel(){
-  // 確保 queue 陣列長度為 12
   while(queue.length<QUEUE_SLOTS)queue.push(null);
   const list=document.getElementById('queueList');
+  const empty=document.getElementById('queueEmpty');
   if(!list)return;
-  list.innerHTML='';
+  Array.from(list.children).forEach(c=>{if(c.id!=='queueEmpty')c.remove();});
 
-  queue.slice(0,QUEUE_SLOTS).forEach((item,idx)=>{
-    const slot=document.createElement('div');
-    slot.className='queue-slot'+(item?' filled':'');
-    slot.dataset.slotIdx=idx;
+  const filled=queue.filter(x=>x!==null);
+  if(filled.length===0){if(empty)empty.style.display='block';return;}
+  if(empty)empty.style.display='none';
 
-    if(item){
-      const cl=item.client||{},sf=item.staff||{};
-      const guestTxt=cl.guests?`（餐飲${cl.guests}人）`:'';
-      slot.draggable=true;
-      slot.innerHTML=`
-        <span class="queue-slot-num">順位 ${idx+1}</span>
-        <div class="queue-card">
-          <div class="queue-num">順位 ${idx+1}</div>
-          <div class="queue-store">${item.storeName||''}${guestTxt}</div>
-          <div class="queue-info">
-            ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
-            ${cl.segment?`Seg: ${cl.segment}<br>`:''}
-            ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
-            ${sf.expert?`💡 ${sf.expert}<br>`:''}
-            ${sf.runner?`🏃 ${sf.runner}`:''}
-          </div>
-          <button class="queue-del" onclick="removeQueue(${idx})">✕</button>
-        </div>`;
-      slot.addEventListener('dragstart',e=>{
-        dragQueueIdx=idx;
-        dragStore=null;dragFrom=null; // 清除包廂拖曳狀態
-        e.dataTransfer.setData('queueIdx',String(idx));
-        e.dataTransfer.effectAllowed='move';
-      });
-      slot.addEventListener('dragend',()=>{dragQueueIdx=null;});
-    }else{
-      slot.style.cursor='pointer';
-      slot.innerHTML=`<span class="queue-slot-num">順位 ${idx+1}</span><div class="queue-slot-empty">＋</div>`;
-      slot.addEventListener('click',()=>openQueueAddModal(idx));
-    }
-
-    // Drop：接受從候位或包廂拖來的資料
-    slot.addEventListener('dragover',e=>{e.preventDefault();slot.classList.add('drag-over');});
-    slot.addEventListener('dragleave',()=>slot.classList.remove('drag-over'));
-    slot.addEventListener('drop',e=>{
-      e.preventDefault();slot.classList.remove('drag-over');
-
-      // 從另一個候位格子拖來（交換）
+  queue.forEach((item,idx)=>{
+    if(!item)return;
+    const card=document.createElement('div');
+    card.className='queue-card';
+    card.draggable=true;
+    card.dataset.queueIdx=idx;
+    const cl=item.client||{},sf=item.staff||{};
+    const guestTxt=cl.guests?`（餐飲${cl.guests}人）`:'';
+    // 計算在有效候位中的順序
+    const order=queue.slice(0,idx+1).filter(x=>x!==null).length;
+    card.innerHTML=`
+      <div class="queue-num">順位 ${order}</div>
+      <div class="queue-store">${item.storeName||''}${guestTxt}</div>
+      <div class="queue-info">
+        ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
+        ${cl.segment?`Seg: ${cl.segment}<br>`:''}
+        ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
+        ${sf.expert?`💡 ${sf.expert}<br>`:''}
+        ${sf.runner?`🏃 ${sf.runner}`:''}
+      </div>
+      <button class="queue-del" onclick="removeQueue(${idx})">✕</button>`;
+    card.addEventListener('dragstart',e=>{
+      dragQueueIdx=idx;
+      dragStore=null;dragFrom=null;
+      e.dataTransfer.setData('queueIdx',String(idx));
+      e.dataTransfer.effectAllowed='move';
+    });
+    card.addEventListener('dragend',()=>{dragQueueIdx=null;});
+    // Drop on card: swap
+    card.addEventListener('dragover',e=>{e.preventDefault();card.classList.add('drag-over-q');});
+    card.addEventListener('dragleave',()=>card.classList.remove('drag-over-q'));
+    card.addEventListener('drop',e=>{
+      e.preventDefault();card.classList.remove('drag-over-q');
       const fromQ=e.dataTransfer.getData('queueIdx');
       if(fromQ!==''&&fromQ!==undefined){
         const fi=parseInt(fromQ);
-        if(fi!==idx){
-          const tmp=queue[fi];
-          queue[fi]=queue[idx];
-          queue[idx]=tmp;
-          buildQueuePanel();push();
-        }
-        return;
-      }
-
-      // 從包廂格子拖來
-      if(dragFrom){
-        const storeId=assignments[dragFrom];
-        const s=STORES.find(x=>x.id===storeId);
-        if(s){
-          queue[idx]={
-            storeId,
-            storeName:s.name,
-            client:{...(clients[dragFrom]||{})},
-            staff:{...(staff[dragFrom]||{})},
-          };
-          // 清除包廂
-          delete assignments[dragFrom];
-          delete returned[dragFrom];
-          delete staff[dragFrom];
-          delete clients[dragFrom];
-          dragFrom=null;dragStore=null;
-          buildQueuePanel();render();push();
-        }
+        if(fi!==idx){const tmp=queue[fi];queue[fi]=queue[idx];queue[idx]=tmp;buildQueuePanel();push();}
       }
     });
-    list.appendChild(slot);
+    list.appendChild(card);
   });
 }
 
@@ -1116,19 +1087,12 @@ window.confirmQueueAdd=()=>{
     expert:document.getElementById('queueExpert').value.trim(),
     runner:document.getElementById('queueRunner').value.trim(),
   };
-  while(queue.length<QUEUE_SLOTS)queue.push(null);
-  // 放到指定格子或第一個空格
-  let targetIdx=pendingQueueSlotIdx;
-  if(targetIdx===null||targetIdx===undefined){
-    targetIdx=queue.findIndex(x=>x===null);
-  }
-  if(targetIdx===-1){alert('候位區已滿（12個）');return;}
-  queue[targetIdx]={storeId,storeName:s?s.name:'',client,staff:sf};
+  queue.push({storeId,storeName:s?s.name:'',client,staff:sf});
   pendingQueueSlotIdx=null;
   closeQueueModal();buildQueuePanel();push();
 };
 window.removeQueue=(idx)=>{
-  queue[idx]=null;buildQueuePanel();push();
+  queue.splice(idx,1);buildQueuePanel();push();
 };
 
 // Queue modal - client search
