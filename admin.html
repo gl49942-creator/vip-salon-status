@@ -1018,7 +1018,6 @@ function buildQueuePanel(){
       const guestTxt=cl.guests?`（餐飲${cl.guests}人）`:'';
       slot.draggable=true;
       slot.innerHTML=`
-        <span class="queue-slot-num">順位 ${idx+1}</span>
         <div class="queue-card">
           <div class="queue-num">順位 ${idx+1}</div>
           <div class="queue-store">${item.storeName||''}${guestTxt}</div>
