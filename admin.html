@@ -86,11 +86,12 @@ tbody td:last-child{border-right:none;}
 .ret-badge{font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:#e0e0e0;color:#888;}
 .queue-card{background:#fff;border:1px solid #D0CEC9;border-radius:8px;padding:7px 10px;position:relative;cursor:grab;width:100%;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .queue-slot{width:130px;flex-shrink:0;border-radius:7px;border:1px dashed #C8C6C2;background:#E8E6E2;min-height:76px;position:relative;transition:.15s;cursor:default;}
+.queue-slot:not(.filled):hover{border-color:#185FA5;background:#EBF3FC;}
 .queue-slot.filled{border:1px solid #D0CEC9;background:#FAFAF9;cursor:grab;box-shadow:0 1px 3px rgba(0,0,0,.06);}
 .queue-slot.filled:active{cursor:grabbing;}
 .queue-slot.drag-over{border-color:#185FA5 !important;background:#E6F1FB !important;}
 .queue-slot-num{font-size:9px;color:#A8A6A2;padding:4px 7px 0;display:block;font-weight:500;}
-.queue-slot-empty{font-size:18px;color:#C0BDB8;text-align:center;padding:14px 4px 4px;line-height:1;}
+.queue-slot-empty{font-size:22px;color:#185FA5;text-align:center;padding:12px 4px 2px;line-height:1;}
 .queue-num{font-size:9px;font-weight:600;color:#2C3E6B;background:#DDE6F5;padding:1px 5px;border-radius:3px;display:inline-block;margin-bottom:3px;}
 .queue-store{font-size:11px;font-weight:600;color:#1F2D45;margin-bottom:2px;line-height:1.3;}
 .queue-info{font-size:10px;color:#777;line-height:1.5;}
@@ -167,11 +168,8 @@ tbody td:last-child{border-right:none;}
     <p class="tip">拖拉店鋪至格子分配；✕ 移除</p>
   </div>
   <!-- 候位區 -->
-  <div id="queuePanel" style="flex:1;min-width:0;background:#EEECEA;border-radius:10px;border:1px solid #D8D6D2;padding:8px 12px;">
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
-      <div style="font-size:13px;font-weight:600;color:#444;">📋 包廂排隊區</div>
-      <button onclick="openQueueAddModal()" style="font-size:11px;padding:2px 10px;border-radius:6px;border:1px solid #185FA5;background:#E6F1FB;color:#185FA5;cursor:pointer;font-family:inherit;">＋ 新增</button>
-    </div>
+  <div id="queuePanel" style="flex-shrink:0;background:#EEECEA;border-radius:10px;border:1px solid #D8D6D2;padding:8px 12px;">
+    <div style="font-size:13px;font-weight:600;color:#444;margin-bottom:6px;">📋 包廂排隊區</div>
     <div id="queueList" style="display:flex;flex-direction:row;gap:6px;flex-wrap:nowrap;"></div>
   </div>
 </div>
