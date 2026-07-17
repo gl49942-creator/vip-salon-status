@@ -635,7 +635,7 @@ function buildGrid(){
       e.preventDefault();cell.classList.remove('drag-over');
       const k=key(decodeURIComponent(cell.dataset.room),decodeURIComponent(cell.dataset.slot));
 
-      // 候位卡片拖曳
+      // 候位卡片拖曳（優先判斷，不被 dragStore 擋住）
       const qIdx=e.dataTransfer.getData('queueIdx');
       if(qIdx!==''&&qIdx!==undefined&&qIdx!==null){
         const idx=parseInt(qIdx);
@@ -645,11 +645,12 @@ function buildGrid(){
         if(item.client&&Object.keys(item.client).length>0)clients[k]=item.client;
         if(item.staff&&Object.keys(item.staff).length>0)staff[k]=item.staff;
         delete returned[k];
-        queue.splice(idx,1); // 動態移除        buildQueuePanel();render();push();
+        queue[idx]=null;
+        buildQueuePanel();render();push();
         return;
       }
 
-      // 一般店鋪拖曳
+      // 一般店鋪或包廂格子拖曳
       if(!dragStore)return;
       if(dragFrom&&dragFrom!==k){
         if(staff[dragFrom])  {staff[k]=staff[dragFrom];  delete staff[dragFrom];}  else delete staff[k];
@@ -1049,12 +1050,16 @@ function buildQueuePanel(){
     slot.addEventListener('dragleave',()=>slot.classList.remove('drag-over'));
     slot.addEventListener('drop',e=>{
       e.preventDefault();slot.classList.remove('drag-over');
+
+      // 從另一個候位格子拖來（互換）
       const fromQ=e.dataTransfer.getData('queueIdx');
-      if(fromQ!==''&&fromQ!==undefined){
+      if(fromQ!==''){
         const fi=parseInt(fromQ);
         if(fi!==idx){const tmp=queue[fi];queue[fi]=queue[idx];queue[idx]=tmp;buildQueuePanel();push();}
         return;
       }
+
+      // 從包廂格子拖來
       if(dragFrom){
         const storeId=assignments[dragFrom];
         const s=STORES.find(x=>x.id===storeId);
