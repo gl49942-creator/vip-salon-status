@@ -404,6 +404,9 @@ onValue(dbRef,snap=>{
   clients2=d.clients2||{};
   returned2=d.returned2||{};
   queue=d.queue||[];
+  // 確保 queue 有 5 個格子（null 補足）
+  while(queue.length<QUEUE_SLOTS)queue.push(null);
+  queue.length=QUEUE_SLOTS;
   setSyncStatus('connected');buildAll();buildTokenSection();buildQueuePanel();
 });
 
@@ -1002,8 +1005,10 @@ const QUEUE_SLOTS=5;
 let dragQueueIdx=null;
 
 function buildQueuePanel(){
+  // 確保永遠有 5 個格子
+  if(!Array.isArray(queue))queue=[];
   while(queue.length<QUEUE_SLOTS)queue.push(null);
-  if(queue.length>QUEUE_SLOTS)queue.length=QUEUE_SLOTS;
+  queue.length=QUEUE_SLOTS;
   const list=document.getElementById('queueList');
   if(!list)return;
   list.innerHTML='';
