@@ -854,7 +854,13 @@ onValue(dbRef,snap=>{
   staff2=d.staff2||{};
   clients2=d.clients2||{};
   returned2=d.returned2||{};
-  queue=d.queue||[];
+  const rawQueue=d.queue||[];
+  queue=Array(5).fill(null);
+  if(Array.isArray(rawQueue)){
+    rawQueue.forEach((item,i)=>{if(i<5&&item)queue[i]=item;});
+  }else{
+    Object.entries(rawQueue).forEach(([k,v])=>{const i=parseInt(k);if(i<5&&v)queue[i]=v;});
+  }
   tick();buildTokenDisplay();buildQueueView();
 });
 

@@ -386,7 +386,10 @@ function setSyncStatus(s){
 }
 function push(){
   isSyncing=true;setSyncStatus('saving');
-  set(dbRef,{assignments,returned,staff,tokens,clients,assignments2,staff2,clients2,returned2,queue,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
+  // queue 存成物件格式以保留 null 位置（Firebase 不保留陣列中的 null）
+  const queueObj={};
+  queue.forEach((item,i)=>{queueObj[i]=item||null;});
+  set(dbRef,{assignments,returned,staff,tokens,clients,assignments2,staff2,clients2,returned2,queue:queueObj,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
@@ -403,10 +406,15 @@ onValue(dbRef,snap=>{
   staff2=d.staff2||{};
   clients2=d.clients2||{};
   returned2=d.returned2||{};
-  queue=d.queue||[];
-  // 確保 queue 有 5 個格子（null 補足）
-  while(queue.length<QUEUE_SLOTS)queue.push(null);
-  queue.length=QUEUE_SLOTS;
+  // Firebase 不保留 null，讀回來的 queue 可能是物件或稀疏陣列，需要重建
+  const rawQueue=d.queue||[];
+  queue=Array(QUEUE_SLOTS).fill(null);
+  if(Array.isArray(rawQueue)){
+    rawQueue.forEach((item,i)=>{if(i<QUEUE_SLOTS&&item)queue[i]=item;});
+  }else{
+    // Firebase 可能把陣列轉成物件 {0:..., 2:...}
+    Object.entries(rawQueue).forEach(([k,v])=>{const i=parseInt(k);if(i<QUEUE_SLOTS&&v)queue[i]=v;});
+  }
   setSyncStatus('connected');buildAll();buildTokenSection();buildQueuePanel();
 });
 
