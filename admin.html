@@ -684,18 +684,19 @@ function buildGrid(){
 
       // 一般店鋪或包廂格子拖曳
       if(!dragStore)return;
+      if(dragFrom&&dragFrom===k){dragStore=null;dragFrom=null;return;}
       if(dragFrom&&dragFrom!==k){
-        if(staff[dragFrom])  {staff[k]=staff[dragFrom];  delete staff[dragFrom];}  else delete staff[k];
-        if(clients[dragFrom]){clients[k]=clients[dragFrom];delete clients[dragFrom];}else delete clients[k];
-        if(assignments2[dragFrom]){assignments2[k]=assignments2[dragFrom];delete assignments2[dragFrom];}else delete assignments2[k];
-        if(staff2[dragFrom])  {staff2[k]=staff2[dragFrom];  delete staff2[dragFrom];}  else delete staff2[k];
-        if(clients2[dragFrom]){clients2[k]=clients2[dragFrom];delete clients2[dragFrom];}else delete clients2[k];
-        delete returned2[dragFrom];delete returned2[k];
-        if(loans[dragFrom]){loans[k]=loans[dragFrom];delete loans[dragFrom];}else delete loans[k];
-        if(loans2[dragFrom]){loans2[k]=loans2[dragFrom];delete loans2[dragFrom];}else delete loans2[k];
-        delete returned[dragFrom];
-        delete returned[k];
-        delete assignments[dragFrom];
+        // 格子對格子：整格資料（第一輪、第二輪、客人、CA、借出、已還）一起「互換」。
+        // 目標格若是空的，就等於搬移；若已有內容，則兩格對調，不會覆蓋任何一邊。
+        [assignments,staff,clients,returned,assignments2,staff2,clients2,returned2,loans,loans2].forEach(o=>{
+          const hasA=Object.prototype.hasOwnProperty.call(o,dragFrom);
+          const hasB=Object.prototype.hasOwnProperty.call(o,k);
+          const a=o[dragFrom],b=o[k];
+          if(hasB)o[dragFrom]=b;else delete o[dragFrom];
+          if(hasA)o[k]=a;else delete o[k];
+        });
+        dragStore=null;dragFrom=null;render();push();
+        return;
       }
       assignments[k]=dragStore;dragStore=null;dragFrom=null;render();push();
     });
