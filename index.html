@@ -186,12 +186,13 @@ let assignments={},returned={},staff={},clients={};
 let assignments2={},staff2={},clients2={},returned2={};
 let loans={},loans2={};
 function escL(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-const unretTag=arr=>{const n=(arr||[]).filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);return n?`｜📦 未還 ${n} 件`:'';};
+const unretTag=arr=>{const n=(arr||[]).filter(it=>!it.returned&&!it.sold).reduce((s,it)=>s+(parseInt(it.qty)||1),0);return n?`｜📦 未還 ${n} 件`:'';};
 function loanHTML(arr,fs,ca){
   if(!arr||!arr.length)return'';
-  const un=arr.filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
-  const sum=`<span style="display:block;font-size:${fs-1}px;font-weight:700;margin-bottom:2px;color:${un?'#A32D2D':'#0F6E56'};">${un?`📦 未還 ${un} 件`:'✓ 全部已還'}</span>`;
-  return `<div style="margin-top:9px;padding:3px 5px;border-radius:5px;background:rgba(255,255,255,.65);border:1px dashed rgba(0,0,0,.25);">${sum}${arr.map(it=>`<span style="display:block;font-size:${fs}px;font-weight:600;line-height:1.5;word-break:break-word;${it.returned?'text-decoration:line-through;opacity:.45;':''}">${it.returned?'✓':'📦'} ${escL(it.name||it.sku)}｜${(it.ca||ca)?escL(it.ca||ca)+'｜':''}×${escL(it.qty||1)}</span>`).join('')}</div>`;
+  const un=arr.filter(it=>!it.returned&&!it.sold).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
+  const sd=arr.filter(it=>it.sold).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
+  const sum=`<span style="display:block;font-size:${fs-1}px;font-weight:700;margin-bottom:2px;color:${un?'#A32D2D':'#0F6E56'};">${un?`📦 未還 ${un} 件`:(sd?'✓ 無未還':'✓ 全部已還')}${sd?`｜💰 已售 ${sd} 件`:''}</span>`;
+  return `<div style="margin-top:9px;padding:3px 5px;border-radius:5px;background:rgba(255,255,255,.65);border:1px dashed rgba(0,0,0,.25);">${sum}${arr.map(it=>`<span style="display:block;font-size:${fs}px;font-weight:600;line-height:1.5;word-break:break-word;${it.sold?'color:#0F6E56;':(it.returned?'text-decoration:line-through;opacity:.45;':'')}">${it.sold?'💰':(it.returned?'✓':'📦')} ${escL(it.name||it.sku)}｜${(it.ca||ca)?escL(it.ca||ca)+'｜':''}×${escL(it.qty||1)}${it.sold?`<span style="font-size:${fs-1}px;font-weight:700;background:#0F6E56;color:#fff;border-radius:4px;padding:0 4px;margin-left:3px;">已售</span>`:''}</span>`).join('')}</div>`;
 }
 let queue=[];
 const color=id=>COLORS[STORES.findIndex(s=>s.id===id)%COLORS.length]||COLORS[0];

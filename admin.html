@@ -115,6 +115,8 @@ tbody td:last-child{border-right:none;}
 .loan-line{cursor:pointer;}
 .loan-line:hover{background:rgba(10,124,140,.12);border-radius:3px;}
 .loan-line.ret{text-decoration:line-through;opacity:.45;}
+.loan-line.sold{color:#0F6E56;}
+.loan-line .sold-tag{font-size:10px;font-weight:700;background:#0F6E56;color:#fff;border-radius:4px;padding:0 4px;margin-left:3px;}
 .loan-sum{display:block;font-size:10px;font-weight:700;color:#A32D2D;margin-bottom:2px;}
 .loan-sum.ok{color:#0F6E56;}
 .loan-list{border:1px solid #eee;border-radius:8px;margin-bottom:10px;max-height:180px;overflow-y:auto;}
@@ -311,7 +313,7 @@ tbody td:last-child{border-right:none;}
 <!-- 借出產品 Modal -->
 <div class="modal-overlay" id="loanModal">
   <div class="modal" style="width:420px;">
-    <h3>📦 借出產品記錄</h3>
+    <h3>📦 產品借出記錄</h3>
     <p id="loanModalDesc" style="font-size:13px;color:#888;margin-bottom:12px;"></p>
     <div id="loanList" class="loan-list"></div>
     <div style="border-top:1px solid #eee;padding-top:10px;margin-bottom:14px;">
@@ -703,7 +705,9 @@ function buildGrid(){
   });
 }
 
-const unretQty=arr=>(arr||[]).filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
+const itQty=it=>parseInt(it.qty)||1;
+const unretQty=arr=>(arr||[]).filter(it=>!it.returned&&!it.sold).reduce((s,it)=>s+itQty(it),0);
+const soldQty=arr=>(arr||[]).filter(it=>it.sold).reduce((s,it)=>s+itQty(it),0);
 const unretTag=arr=>{const n=unretQty(arr);return n?`｜📦 未還 ${n} 件`:''};
 function cellInfoHTML(sid,sfObj,clObj,isRet,k,slot,isR2=false){
   const s=STORES.find(x=>x.id===sid);if(!s)return'';
@@ -718,8 +722,8 @@ function cellInfoHTML(sid,sfObj,clObj,isRet,k,slot,isR2=false){
   const infoLabel=(hasC||hasP)?`${cParts.join('')}${pParts.join('')}`:'';
   const loanArr=(isR2?loans2:loans)[k]||[];
   const keL=k.replace(/'/g,"\\'");
-  const unretN=loanArr.filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
-  const loanHTML=loanArr.length?`<div class="loan-box"><span class="loan-sum ${unretN?'':'ok'}">${unretN?`📦 未還 ${unretN} 件`:'✓ 全部已還'}</span>${loanArr.map((it,ix)=>`<span class="loan-line ${it.returned?'ret':''}" title="點一下切換已歸還" onclick="toggleLoanReturn('${keL}',${isR2?'true':'false'},${ix},event)">${it.returned?'✓':'📦'} ${esc(it.name||it.sku)}｜${(it.ca||sfObj.ca)?esc(it.ca||sfObj.ca)+'｜':''}×${esc(it.qty||1)}</span>`).join('')}</div>`:'';
+  const unretN=unretQty(loanArr),soldN=soldQty(loanArr);
+  const loanHTML=loanArr.length?`<div class="loan-box"><span class="loan-sum ${unretN?'':'ok'}">${unretN?`📦 未還 ${unretN} 件`:(soldN?'✓ 無未還':'✓ 全部已還')}${soldN?`｜💰 已售 ${soldN} 件`:''}</span>${loanArr.map((it,ix)=>`<span class="loan-line ${it.sold?'sold':(it.returned?'ret':'')}" title="點一下切換：未還 → 已還 → 已售" onclick="toggleLoanReturn('${keL}',${isR2?'true':'false'},${ix},event)">${it.sold?'💰':(it.returned?'✓':'📦')} ${esc(it.name||it.sku)}｜${(it.ca||sfObj.ca)?esc(it.ca||sfObj.ca)+'｜':''}×${esc(it.qty||1)}${it.sold?'<span class="sold-tag">已售</span>':''}</span>`).join('')}</div>`:'';
   const retLabel=(isRet?`<span class="ret-badge">已歸還</span>`:'')+loanHTML;
   const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
   const ke=k.replace(/'/g,"\\'");
@@ -1082,7 +1086,7 @@ window.clearSkuList=()=>{
   set(skuListRef,null);
 };
 
-// ── 借出產品記錄 ──────────────────────────────
+// ── 產品借出記錄 ──────────────────────────────
 let pendingLoanKey=null,pendingLoanR2=false,loanDraft=[],loanDefaultCa='';
 window.openLoanModal=(k,isR2,storeName,slot,e)=>{
   if(e)e.stopPropagation();
@@ -1107,18 +1111,26 @@ function renderLoanDraft(){
   if(!loanDraft.length){el.innerHTML='<div class="loan-empty">尚未記錄任何借出產品</div>';return;}
   el.innerHTML=loanDraft.map((it,i)=>`<div class="loan-item">
     <label style="display:flex;flex-direction:column;align-items:center;font-size:10px;color:#0F6E56;cursor:pointer;gap:2px;"><input type="checkbox" ${it.returned?'checked':''} onchange="toggleDraftReturn(${i})"/>已還</label>
-    <div class="li-main" style="${it.returned?'text-decoration:line-through;opacity:.5;':''}"><div>${esc(it.name||it.sku)}</div><div class="li-sku">${it.sku?'SKU: '+esc(it.sku)+'　':''}出借: ${esc(it.ca||loanDefaultCa||'（未填）')}</div></div>
+    <label style="display:flex;flex-direction:column;align-items:center;font-size:10px;color:#B45309;cursor:pointer;gap:2px;"><input type="checkbox" ${it.sold?'checked':''} onchange="toggleDraftSold(${i})"/>已售</label>
+    <div class="li-main" style="${it.returned?'text-decoration:line-through;opacity:.5;':(it.sold?'color:#0F6E56;':'')}"><div>${esc(it.name||it.sku)}</div><div class="li-sku">${it.sku?'SKU: '+esc(it.sku)+'　':''}出借: ${esc(it.ca||loanDefaultCa||'（未填）')}</div></div>
     <button class="loan-qty-btn" onclick="loanQtyDelta(${i},-1)">－</button>
     <strong style="min-width:18px;text-align:center;">${esc(it.qty)}</strong>
     <button class="loan-qty-btn" onclick="loanQtyDelta(${i},1)">＋</button>
     <button class="del-btn" onclick="removeLoanItem(${i})">✕</button>
   </div>`).join('');
 }
-window.toggleDraftReturn=i=>{const it=loanDraft[i];if(!it)return;it.returned=!it.returned;it.returnedAt=it.returned?new Date().toISOString():'';renderLoanDraft();};
+// 每件產品三種狀態互斥：未還 / 已還 / 已售
+const setLoanState=(it,st)=>{const now=new Date().toISOString();
+  it.returned=(st==='ret');it.returnedAt=it.returned?now:'';
+  it.sold=(st==='sold');it.soldAt=it.sold?now:'';};
+window.toggleDraftReturn=i=>{const it=loanDraft[i];if(!it)return;setLoanState(it,it.returned?'out':'ret');renderLoanDraft();};
+window.toggleDraftSold=i=>{const it=loanDraft[i];if(!it)return;setLoanState(it,it.sold?'out':'sold');renderLoanDraft();};
 window.toggleLoanReturn=(k,isR2,ix,e)=>{
   if(e)e.stopPropagation();
   const arr=(isR2?loans2:loans)[k];if(!arr||!arr[ix])return;
-  const it=arr[ix];it.returned=!it.returned;it.returnedAt=it.returned?new Date().toISOString():'';
+  const it=arr[ix];
+  // 點一下循環：未還 → 已還 → 已售 → 未還
+  setLoanState(it,it.sold?'out':(it.returned?'sold':'ret'));
   render();push();
 };
 window.loanQtyDelta=(i,d)=>{const it=loanDraft[i];if(!it)return;it.qty=Math.max(1,(parseInt(it.qty)||1)+d);renderLoanDraft();};
@@ -1146,7 +1158,7 @@ window.confirmLoan=()=>{
   // 輸入框內尚未按「加入清單」的內容，一併加入
   if(document.getElementById('loanSku').value.trim()||document.getElementById('loanName').value.trim())addLoanItem();
   const target=pendingLoanR2?loans2:loans;
-  if(loanDraft.length)target[pendingLoanKey]=loanDraft.map(x=>({sku:x.sku||'',name:x.name||'',qty:parseInt(x.qty)||1,ca:x.ca||'',returned:!!x.returned,returnedAt:x.returnedAt||''}));
+  if(loanDraft.length)target[pendingLoanKey]=loanDraft.map(x=>({sku:x.sku||'',name:x.name||'',qty:parseInt(x.qty)||1,ca:x.ca||'',returned:!!x.returned&&!x.sold,returnedAt:(x.returned&&!x.sold?x.returnedAt:'')||'',sold:!!x.sold,soldAt:(x.sold?x.soldAt:'')||''}));
   else delete target[pendingLoanKey];
   closeLoanModal();render();push();
 };
@@ -1335,7 +1347,7 @@ window.exportExcel=function(){
       const wb=XLSX.utils.book_new();
       const dates=Object.keys(history).sort();
       const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','CA','已歸還']];
-      const loanRows=[['日期','時段','包廂','輪次','店鋪','產品名稱','出借CA','數量','SKU','歸還狀態','歸還時間']];
+      const loanRows=[['日期','時段','包廂','輪次','店鋪','產品名稱','出借CA','數量','SKU','狀態','歸還／售出時間']];
       dates.forEach(date=>{
         const d=history[date];if(!d)return;
         const slotList=d.slots||[],roomList=d.rooms||[],storeList=d.stores||[];
@@ -1351,7 +1363,7 @@ window.exportExcel=function(){
             if(!sid&&!sid2)return;
             const pushLoans=(round,sId,sfObj,arr)=>{
               const st=storeList.find(x=>x.id===sId);
-              (arr||[]).forEach(it=>loanRows.push([date,slot,room,round,st?st.name:'',it.name||'',it.ca||(sfObj||{}).ca||'',it.qty||1,it.sku||'',it.returned?'已歸還':'未歸還',it.returned&&it.returnedAt?fmtDT(it.returnedAt):'']));
+              (arr||[]).forEach(it=>loanRows.push([date,slot,room,round,st?st.name:'',it.name||'',it.ca||(sfObj||{}).ca||'',it.qty||1,it.sku||'',it.sold?'已售':(it.returned?'已歸還':'未歸還'),it.sold?(it.soldAt?fmtDT(it.soldAt):''):(it.returned&&it.returnedAt?fmtDT(it.returnedAt):'')]));
             };
             if(sid)pushLoans('第一輪',sid,sfData[k],(d.loans||{})[k]);
             if(sid2)pushLoans('第二輪',sid2,sfData2[k],(d.loans2||{})[k]);
