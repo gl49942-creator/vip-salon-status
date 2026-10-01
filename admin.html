@@ -115,8 +115,8 @@ tbody td:last-child{border-right:none;}
 .loan-line{cursor:pointer;}
 .loan-line:hover{background:rgba(10,124,140,.12);border-radius:3px;}
 .loan-line.ret{text-decoration:line-through;opacity:.45;}
-.loan-line.sold{color:#0F6E56;}
-.loan-line .sold-tag{font-size:10px;font-weight:700;background:#0F6E56;color:#fff;border-radius:4px;padding:0 4px;margin-left:3px;}
+.loan-line.sold{color:#0F6E56;text-decoration:line-through;opacity:.75;}
+.loan-line .sold-tag{display:inline-block;font-size:10px;font-weight:700;background:#0F6E56;color:#fff;border-radius:4px;padding:0 4px;margin-left:3px;}
 .loan-sum{display:block;font-size:10px;font-weight:700;color:#A32D2D;margin-bottom:2px;}
 .loan-sum.ok{color:#0F6E56;}
 .loan-list{border:1px solid #eee;border-radius:8px;margin-bottom:10px;max-height:180px;overflow-y:auto;}
@@ -1112,7 +1112,7 @@ function renderLoanDraft(){
   el.innerHTML=loanDraft.map((it,i)=>`<div class="loan-item">
     <label style="display:flex;flex-direction:column;align-items:center;font-size:10px;color:#0F6E56;cursor:pointer;gap:2px;"><input type="checkbox" ${it.returned?'checked':''} onchange="toggleDraftReturn(${i})"/>已還</label>
     <label style="display:flex;flex-direction:column;align-items:center;font-size:10px;color:#B45309;cursor:pointer;gap:2px;"><input type="checkbox" ${it.sold?'checked':''} onchange="toggleDraftSold(${i})"/>已售</label>
-    <div class="li-main" style="${it.returned?'text-decoration:line-through;opacity:.5;':(it.sold?'color:#0F6E56;':'')}"><div>${esc(it.name||it.sku)}</div><div class="li-sku">${it.sku?'SKU: '+esc(it.sku)+'　':''}出借: ${esc(it.ca||loanDefaultCa||'（未填）')}</div></div>
+    <div class="li-main" style="${it.returned?'text-decoration:line-through;opacity:.5;':(it.sold?'color:#0F6E56;text-decoration:line-through;opacity:.7;':'')}"><div>${esc(it.name||it.sku)}</div><div class="li-sku">${it.sku?'SKU: '+esc(it.sku)+'　':''}出借: ${esc(it.ca||loanDefaultCa||'（未填）')}</div></div>
     <button class="loan-qty-btn" onclick="loanQtyDelta(${i},-1)">－</button>
     <strong style="min-width:18px;text-align:center;">${esc(it.qty)}</strong>
     <button class="loan-qty-btn" onclick="loanQtyDelta(${i},1)">＋</button>
