@@ -80,6 +80,7 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   .queue-v-num{font-size:11px;font-weight:700;color:#185FA5;background:#E6F1FB;padding:1px 7px;border-radius:4px;display:inline-block;margin-bottom:5px;}
   .queue-v-store{font-size:13px;font-weight:600;color:#1F2D45;margin-bottom:3px;}
   .queue-v-info{font-size:11px;color:#666;line-height:1.6;}
+  .round-hdr-v{font-size:9px;font-weight:600;letter-spacing:.4px;padding:3px 8px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;}
   .round-hdr-v:hover{filter:brightness(.95);}
   .round-hdr-v .chv{font-size:9px;transition:transform .2s;}
   .round-hdr-v.open .chv{transform:rotate(180deg);}
@@ -161,14 +162,6 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   </div>
 </div>
 
-<!-- TOKEN 狀況 -->
-<div id="tokenDisplay" style="margin-top:24px;display:none;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-    <div style="font-size:16px;font-weight:600;color:#1a1a1a;">🎫 13號備用TOKEN</div>
-    <div id="tokenViewSummary" style="display:flex;gap:10px;"></div>
-  </div>
-  <div id="tokenViewGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
-</div>
 <div class="empty-notice" id="emptyNotice" style="display:none;">尚未有分配資料，請等待管理員設定。</div>
 
 <script type="module">
@@ -189,10 +182,18 @@ const COLORS=[{bg:'#E6F1FB',border:'#185FA5',text:'#0C447C'},{bg:'#E1F5EE',borde
 let SLOTS=['11:00–13:00','13:00–15:00','15:00–17:00','17:00–19:00','19:00–21:00'];
 let ROOMS=Array.from({length:9},(_,i)=>`包廂 ${i+1}`);
 let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'},{id:'tnn',name:'TN'},{id:'101',name:'TPE 101'},{id:'a3',name:'A3'},{id:'lvb',name:'LVB'},{id:'sogo',name:'SOGO'}];
-let assignments={},returned={},staff={},tokens={},clients={};
+let assignments={},returned={},staff={},clients={};
 let assignments2={},staff2={},clients2={},returned2={};
+let loans={},loans2={};
+function escL(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+const unretTag=arr=>{const n=(arr||[]).filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);return n?`｜📦 未還 ${n} 件`:'';};
+function loanHTML(arr,fs,ca){
+  if(!arr||!arr.length)return'';
+  const un=arr.filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
+  const sum=`<span style="display:block;font-size:${fs-1}px;font-weight:700;margin-bottom:2px;color:${un?'#A32D2D':'#0F6E56'};">${un?`📦 未還 ${un} 件`:'✓ 全部已還'}</span>`;
+  return `<div style="margin-top:9px;padding:3px 5px;border-radius:5px;background:rgba(255,255,255,.65);border:1px dashed rgba(0,0,0,.25);">${sum}${arr.map(it=>`<span style="display:block;font-size:${fs}px;font-weight:600;line-height:1.5;word-break:break-word;${it.returned?'text-decoration:line-through;opacity:.45;':''}">${it.returned?'✓':'📦'} ${escL(it.name||it.sku)}｜${(it.ca||ca)?escL(it.ca||ca)+'｜':''}×${escL(it.qty||1)}</span>`).join('')}</div>`;
+}
 let queue=[];
-const TOKEN_TOTAL=5;
 const color=id=>COLORS[STORES.findIndex(s=>s.id===id)%COLORS.length]||COLORS[0];
 const key=(r,s)=>`${r}||${s}`;
 
@@ -546,33 +547,31 @@ function buildTable(){
 
       if(!sid&&!sid2){h+=`<td style="${borderL}"><div class="cell"></div></td>`;return;}
 
-      function cellContentV(sidX,sfX,clX,isRetX){
+      function cellContentV(sidX,sfX,clX,isRetX,loanX){
         const sx=STORES.find(x=>x.id===sidX);
         const cx=sx?color(sidX):{bg:'#eee',border:'#ccc',text:'#666'};
         const cp=[];
-        if(clX.clientName)cp.push(`<span class="client-line">Name: ${clX.clientName}</span>`);
-        if(clX.segment)cp.push(`<span class="client-line">Seg: ${clX.segment}</span>`);
+        if(clX.clientName)cp.push(`<span class="client-line">Name: ${escL(clX.clientName)}</span>`);
+        if(clX.segment)cp.push(`<span class="client-line">Seg: ${escL(clX.segment)}</span>`);
         const sp=[];
-        if(sfX.ca)sp.push(`<span class="staff-line">🧑‍💼 ${sfX.ca}</span>`);
-        if(sfX.expert)sp.push(`<span class="staff-line">💡 ${sfX.expert}</span>`);
-        if(sfX.runner)sp.push(`<span class="staff-line">🏃 ${sfX.runner}</span>`);
-        const infoTxt=(cp.length||sp.length)?`${cp.join('')}${cp.length&&sp.length?'<hr class="cell-divider"/>':''}${sp.join('')}`:'';
-        const retTxt=isRetX?`<span class="done-label">已歸還</span>`:'';
+        if(sfX.ca)sp.push(`<span class="staff-line">CA: ${escL(sfX.ca)}</span>`);
+        const infoTxt=(cp.length||sp.length)?`${cp.join('')}${sp.join('')}`:'';
+        const retTxt=(isRetX?`<span class="done-label">已歸還</span>`:'')+loanHTML(loanX,11,sfX.ca);
         const retSty=isRetX?'opacity:.5;background:#f5f5f5;border:1.5px solid #e0e0e0;color:#aaa;':`background:${cx.bg};border:2px solid ${cx.border};color:${cx.text};`;
-        const guestLbl=clX.guests?` <span style="font-size:10px;font-weight:400;opacity:.75;">（餐飲 ${clX.guests} 人）</span>`:'';return `<div class="assigned" style="${retSty}"><span class="store-name-lbl">${sx?sx.name:''}${guestLbl}</span>${infoTxt}${retTxt}</div>`;
+        const guestLbl='';return `<div class="assigned" style="${retSty}"><span class="store-name-lbl">${sx?sx.name:''}${guestLbl}</span>${infoTxt}${retTxt}</div>`;
       }
 
       if(sid&&!sid2){
         const s=STORES.find(x=>x.id===sid);const c=s?color(sid):{bg:'#eee',border:'#ccc',text:'#666'};
         const rst=roomStatus(slot,k);const isRet=returned[k]||false;
         const cellClass=isRet?'cell filled cell-done':cellCls(rst,true);
-        h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}">${cellContentV(sid,staff[k]||{},clients[k]||{},isRet)}</div></td>`;
+        h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}">${cellContentV(sid,staff[k]||{},clients[k]||{},isRet,loans[k])}</div></td>`;
       } else if(sid&&sid2){
         const isRet=returned[k]||false;
         const isRet2=returned2[k]||false;
         const s2=STORES.find(x=>x.id===sid2);
         const c2=s2?color(sid2):{bg:'#eee',border:'#ccc',text:'#666'};
-        const uid='v'+k.replace(/[^a-z0-9]/gi,'');
+        const uid='v'+ROOMS.indexOf(room)+'_'+SLOTS.indexOf(slot);
         const r2status=isRet2?'✓ 已歸還':'進行中';
         const r2hdrBg=isRet2?'background:#e8e8e8;color:#777;':`background:${c2.border};color:#fff;`;
         const border=isRet2?'1.5px solid #e0e0e0':`2px solid ${c2.border}`;
@@ -581,16 +580,16 @@ function buildTable(){
         h+=`<td style="${borderL}"><div class="${cellClass}" data-k="${k}">
           <div style="border:${border};border-radius:8px;width:100%;overflow:hidden;display:flex;flex-direction:column;">
             <div class="round-hdr-v" id="vh1-${uid}" onclick="toggleRoundV('${uid}',1)" style="background:#e8e8e8;color:#777;">
-              <span>第一輪 · ${STORES.find(x=>x.id===sid)?.name||''} · ✓ 已歸還</span><span class="chv">▾</span>
+              <span>第一輪 · ${STORES.find(x=>x.id===sid)?.name||''} · ✓ 已歸還${unretTag(loans[k])}</span><span class="chv">▾</span>
             </div>
-            <div id="vd1-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
-              ${cellContentV(sid,staff[k]||{},clients[k]||{},isRet)}
+            <div id="vd1-${uid}" style="overflow:hidden;max-height:${mhV(uid,1)};transition:max-height .25s;">
+              ${cellContentV(sid,staff[k]||{},clients[k]||{},isRet,loans[k])}
             </div>
             <div class="round-hdr-v" id="vh2-${uid}" onclick="toggleRoundV('${uid}',2)" style="${r2hdrBg}">
-              <span>第二輪 · ${s2?s2.name:''} · ${r2status}</span><span class="chv">▾</span>
+              <span>第二輪 · ${s2?s2.name:''} · ${r2status}${unretTag(loans2[k])}</span><span class="chv">▾</span>
             </div>
-            <div id="vd2-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
-              ${cellContentV(sid2,staff2[k]||{},clients2[k]||{},isRet2)}
+            <div id="vd2-${uid}" style="overflow:hidden;max-height:${mhV(uid,2)};transition:max-height .25s;">
+              ${cellContentV(sid2,staff2[k]||{},clients2[k]||{},isRet2,loans2[k])}
             </div>
           </div>
         </div></td>`;
@@ -657,18 +656,16 @@ function buildCards(){
           const isRet=returned[k]||false;
           const isRet2=returned2[k]||false;
 
-          function mCellContent(sidX,sfX,clX,isRetX){
+          function mCellContent(sidX,sfX,clX,isRetX,loanX){
             const sx=STORES.find(x=>x.id===sidX);
             const cx=sx?color(sidX):{bg:'#eee',border:'#ccc',text:'#666'};
             const cp=[];
-            if(clX.clientName)cp.push(`<span class="client-lbl-m">Name: ${clX.clientName}</span>`);
-            if(clX.segment)cp.push(`<span class="client-lbl-m">Seg: ${clX.segment}</span>`);
+            if(clX.clientName)cp.push(`<span class="client-lbl-m">Name: ${escL(clX.clientName)}</span>`);
+            if(clX.segment)cp.push(`<span class="client-lbl-m">Seg: ${escL(clX.segment)}</span>`);
             const sp=[];
-            if(sfX.ca)sp.push(`<span class="staff-lbl-m">🧑‍💼 ${sfX.ca}</span>`);
-            if(sfX.expert)sp.push(`<span class="staff-lbl-m">💡 ${sfX.expert}</span>`);
-            if(sfX.runner)sp.push(`<span class="staff-lbl-m">🏃 ${sfX.runner}</span>`);
-            const infoTxt=(cp.length||sp.length)?`${cp.join('')}${cp.length&&sp.length?'<hr class="cell-divider-m"/>':''}${sp.join('')}`:'';
-            const retTxt=isRetX?`<span class="done-lbl-m">已歸還</span>`:'';
+            if(sfX.ca)sp.push(`<span class="staff-lbl-m">CA: ${escL(sfX.ca)}</span>`);
+                    const infoTxt=(cp.length||sp.length)?`${cp.join('')}${sp.join('')}`:'';
+            const retTxt=(isRetX?`<span class="done-lbl-m">已歸還</span>`:'')+loanHTML(loanX,10,sfX.ca);
             const cellSty=isRetX?'opacity:.5;background:#f5f5f5;border:1px solid #e0e0e0;':`background:${cx.bg};border:1.5px solid ${cx.border};`;
             const nameSty=isRetX?'color:#aaa;':`color:${cx.text};`;
             return {sx,cx,cellSty,nameSty,infoTxt,retTxt};
@@ -682,9 +679,9 @@ function buildCards(){
             else if(rst==='overtime')rCls+=' cell-ot';
             else if(rst==='warn15')rCls+=' cell-w15';
             else if(rst==='warn30')rCls+=' cell-w30';
-            const {sx,cx,cellSty,nameSty,infoTxt,retTxt}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet);
+            const {sx,cx,cellSty,nameSty,infoTxt,retTxt}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet,loans[k]);
             const cl1=clients[k]||{};
-            const gLbl=cl1.guests?` <span style="font-size:9px;opacity:.75;">（餐飲 ${cl1.guests} 人）</span>`:'';
+            const gLbl='';
             html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.7;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}${gLbl}</span>${infoTxt}${retTxt}</div>`;
           } else if(sid&&sid2){
             // 兩輪
@@ -695,24 +692,24 @@ function buildCards(){
             else if(rst==='warn30')rCls+=' cell-w30';
             const s2=STORES.find(x=>x.id===sid2);
             const c2=s2?color(sid2):{bg:'#eee',border:'#ccc',text:'#666'};
-            const uid2='m'+k.replace(/[^a-z0-9]/gi,'');
+            const uid2='m'+ROOMS.indexOf(room)+'_'+SLOTS.indexOf(slot);
             const r2hdrBg=isRet2?'background:#e8e8e8;color:#777;':`background:${c2.border};color:#fff;`;
             const r2status=isRet2?'✓ 已歸還':'進行中';
             const border2=isRet2?'border:1px solid #e0e0e0;':`border:1.5px solid ${c2.border};`;
             const {sx:s1x}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet);
-            const {infoTxt:info2,retTxt:ret2}=mCellContent(sid2,staff2[k]||{},clients2[k]||{},isRet2);
+            const {infoTxt:info2,retTxt:ret2}=mCellContent(sid2,staff2[k]||{},clients2[k]||{},isRet2,loans2[k]);
             html+=`<div class="${rCls}" style="${border2}border-radius:8px;overflow:hidden;background:#fff;">
               <span class="room-lbl" style="padding:4px 8px 0;display:block;color:#aaa;opacity:.7;font-size:10px;">${room}</span>
               <div style="font-size:9px;font-weight:600;padding:3px 8px;background:#e8e8e8;color:#777;display:flex;justify-content:space-between;cursor:pointer;" onclick="toggleRoundV('${uid2}',1)">
-                <span>第一輪 · ${s1x?s1x.name:''} · ✓ 已歸還</span><span id="vh1-${uid2}" class="chv">▾</span>
+                <span>第一輪 · ${s1x?s1x.name:''} · ✓ 已歸還${unretTag(loans[k])}</span><span id="vh1-${uid2}" class="chv">▾</span>
               </div>
-              <div id="vd1-${uid2}" style="overflow:hidden;max-height:0;transition:max-height .25s;padding:0 8px;">
-                ${mCellContent(sid,staff[k]||{},clients[k]||{},isRet).infoTxt}
+              <div id="vd1-${uid2}" style="overflow:hidden;max-height:${mhV(uid2,1)};transition:max-height .25s;padding:0 8px;">
+                ${mCellContent(sid,staff[k]||{},clients[k]||{},isRet).infoTxt}${loanHTML(loans[k],10,(staff[k]||{}).ca)}
               </div>
               <div style="font-size:9px;font-weight:600;padding:3px 8px;${r2hdrBg}display:flex;justify-content:space-between;cursor:pointer;" onclick="toggleRoundV('${uid2}',2)">
-                <span>第二輪 · ${s2?s2.name:''} · ${r2status}</span><span id="vh2-${uid2}" class="chv">▾</span>
+                <span>第二輪 · ${s2?s2.name:''} · ${r2status}${unretTag(loans2[k])}</span><span id="vh2-${uid2}" class="chv">▾</span>
               </div>
-              <div id="vd2-${uid2}" style="overflow:hidden;max-height:0;transition:max-height .25s;padding:0 8px;">
+              <div id="vd2-${uid2}" style="overflow:hidden;max-height:${mhV(uid2,2)};transition:max-height .25s;padding:0 8px;">
                 ${info2}${ret2}
               </div>
             </div>`;
@@ -728,6 +725,8 @@ function buildCards(){
 
 function updateClock(){document.getElementById('clock').textContent='現在時間：'+new Date().toLocaleTimeString('zh-TW',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
 
+const openRoundsV=new Set();
+function mhV(uid,n){return openRoundsV.has(uid+':'+n)?'500px':'0px';}
 window.toggleRoundV=function(uid,n){
   const hdr=document.getElementById(`vh${n}-${uid}`);
   const det=document.getElementById(`vd${n}-${uid}`);
@@ -735,6 +734,7 @@ window.toggleRoundV=function(uid,n){
   const isOpen=det.style.maxHeight!=='0px'&&det.style.maxHeight!=='';
   det.style.maxHeight=isOpen?'0px':'500px';
   hdr.classList.toggle('open',!isOpen);
+  if(isOpen)openRoundsV.delete(uid+':'+n);else openRoundsV.add(uid+':'+n);
 };
 
 function buildQueueView(){
@@ -749,7 +749,7 @@ function buildQueueView(){
       if(de)de.style.display='none';
       items.forEach((item,idx)=>{
         const cl=item.client||{},sf=item.staff||{};
-        const guestTxt=cl.guests?`（餐飲 ${cl.guests} 人）`:'';
+        const guestTxt='';
         const card=document.createElement('div');
         card.className='queue-v-card';
         card.style.minWidth='140px';
@@ -758,11 +758,9 @@ function buildQueueView(){
         card.innerHTML=`<div class="queue-v-num">順位 ${idx+1}</div>
           <div class="queue-v-store">${item.storeName||''}${guestTxt}</div>
           <div class="queue-v-info">
-            ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
+            ${cl.clientName?`Name: ${escL(cl.clientName)}<br>`:''}
             ${cl.segment?`Seg: ${cl.segment}<br>`:''}
-            ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
-            ${sf.expert?`💡 ${sf.expert}<br>`:''}
-            ${sf.runner?`🏃 ${sf.runner}`:''}
+            ${sf.ca?`CA: ${escL(sf.ca)}<br>`:''}
           </div>`;
         dl.appendChild(card);
       });
@@ -778,17 +776,15 @@ function buildQueueView(){
       if(me)me.style.display='none';
       items.forEach((item,idx)=>{
         const cl=item.client||{},sf=item.staff||{};
-        const guestTxt=cl.guests?`（餐飲 ${cl.guests} 人）`:'';
+        const guestTxt='';
         const card=document.createElement('div');
         card.style.cssText='background:#f8f9fc;border:1px solid #dde3f0;border-radius:10px;padding:12px 14px;';
         card.innerHTML=`<div style="font-size:11px;font-weight:700;color:#185FA5;margin-bottom:3px;">順位 ${idx+1}</div>
           <div style="font-size:14px;font-weight:700;color:#1F2D45;margin-bottom:4px;">${item.storeName||''}${guestTxt}</div>
           <div style="font-size:12px;color:#666;line-height:1.7;">
-            ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
+            ${cl.clientName?`Name: ${escL(cl.clientName)}<br>`:''}
             ${cl.segment?`Seg: ${cl.segment}<br>`:''}
-            ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
-            ${sf.expert?`💡 ${sf.expert}<br>`:''}
-            ${sf.runner?`🏃 ${sf.runner}`:''}
+            ${sf.ca?`CA: ${escL(sf.ca)}<br>`:''}
           </div>`;
         ml.appendChild(card);
       });
@@ -809,7 +805,7 @@ window.hideMobileQueue=()=>{
 function tick(){
   const total=Object.keys(assignments).length+Object.keys(assignments2).length;
   document.getElementById('emptyNotice').style.display=total===0?'block':'none';
-  buildTable();buildCards();updateAlert();updateClock();updateSlotLabels();buildTokenDisplay();
+  buildTable();buildCards();updateAlert();updateClock();updateSlotLabels();
 }
 // 輕量更新：每3秒更新時間、警示、手機卡片排序
 function updateCellStyles(){
@@ -834,7 +830,7 @@ function updateCellStyles(){
   });
 }
 
-function lightTick(){updateAlert();updateClock();updateSlotLabels();buildTable();buildCards();updateCellStyles();buildTokenDisplay();buildQueueView();}
+function lightTick(){updateAlert();updateClock();updateSlotLabels();buildTable();buildCards();updateCellStyles();buildQueueView();}
 
 onValue(dbRef,snap=>{
   document.getElementById('syncDot').className='sync-dot connected';
@@ -848,12 +844,13 @@ onValue(dbRef,snap=>{
   assignments=d.assignments||{};
   returned=d.returned||{};
   staff=d.staff||{};
-  tokens=d.tokens||{};
   clients=d.clients||{};
   assignments2=d.assignments2||{};
   staff2=d.staff2||{};
   clients2=d.clients2||{};
   returned2=d.returned2||{};
+  loans=d.loans||{};
+  loans2=d.loans2||{};
   const rawQueue=d.queue||[];
   queue=Array(5).fill(null);
   if(Array.isArray(rawQueue)){
@@ -861,46 +858,8 @@ onValue(dbRef,snap=>{
   }else{
     Object.entries(rawQueue).forEach(([k,v])=>{const i=parseInt(k);if(i<5&&v)queue[i]=v;});
   }
-  tick();buildTokenDisplay();buildQueueView();
+  tick();buildQueueView();
 });
-
-function buildTokenDisplay(){
-  const lent=Object.entries(tokens).reduce((s,[k,v])=>{
-    if(typeof v!=='number')return s;
-    return s+v;
-  },0);
-  const hasAny=lent>0;
-  const display=document.getElementById('tokenDisplay');
-  display.style.display=hasAny?'block':'none';
-  if(!hasAny)return;
-  document.getElementById('tokenViewSummary').innerHTML=`
-    <div style="padding:6px 14px;border-radius:8px;background:#FAEEDA;border:1px solid #BA7517;color:#633806;text-align:center;">
-      <span style="font-size:18px;font-weight:700;display:block;">${lent}</span>
-      <span style="font-size:11px;">已借出</span>
-    </div>`;
-  const grid=document.getElementById('tokenViewGrid');
-  grid.innerHTML='';
-  // 直接遍歷 tokens，顯示所有數字類型的 key
-  Object.entries(tokens).forEach(([k,cnt])=>{
-    if(typeof cnt!=='number'||cnt<=0)return;
-    if(k==='__other_count__'){
-      const note=tokens['__other_note__']||'其他';
-      const borrower=tokens['__other_borrower__']||'';
-      const chip=document.createElement('div');
-      chip.style.cssText='padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#1a1a1a;';
-      chip.innerHTML=`${note}：<strong>${cnt} 顆</strong>${borrower?` · ${borrower}`:''}`;
-      grid.appendChild(chip);
-      return;
-    }
-    // 找對應的完整包廂名稱（從ROOMS）
-    const borrower=tokens[k+'__borrower__']||'';
-    const label=ROOMS.find(r=>r===k||r.replace(/[.#$/[\]\s]/g,'_')===k)||k;
-    const chip=document.createElement('div');
-    chip.style.cssText='padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#1a1a1a;';
-    chip.innerHTML=`${label}：<strong>${cnt} 顆</strong>${borrower?` · ${borrower}`:''}`;
-    grid.appendChild(chip);
-  });
-}
 
 tick();
 setInterval(lightTick,3000);

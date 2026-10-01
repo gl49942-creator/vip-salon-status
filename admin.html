@@ -107,19 +107,24 @@ tbody td:last-child{border-right:none;}
 .staff-badge{font-size:12px;opacity:.85;display:block;line-height:1.6;}
 .cell-divider-a{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 0;}
 .client-badge{font-size:12px;font-weight:500;color:#3C3489;display:block;line-height:1.6;}
+.loan-btn{position:absolute;bottom:-6px;right:-6px;width:18px;height:18px;border-radius:50%;background:#0A7C8C;color:white;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity 0.15s;border:none;line-height:1;padding:0;}
+.cell:hover .loan-btn,.assigned:hover .loan-btn{opacity:1;}
+.loan-box{margin-top:9px;padding:4px 6px;border-radius:6px;background:rgba(255,255,255,.65);border:1px dashed rgba(0,0,0,.25);}
+.loan-line{font-size:11px;font-weight:600;line-height:1.5;display:block;word-break:break-word;}
+.loan-line small{font-weight:400;opacity:.75;}
+.loan-line{cursor:pointer;}
+.loan-line:hover{background:rgba(10,124,140,.12);border-radius:3px;}
+.loan-line.ret{text-decoration:line-through;opacity:.45;}
+.loan-sum{display:block;font-size:10px;font-weight:700;color:#A32D2D;margin-bottom:2px;}
+.loan-sum.ok{color:#0F6E56;}
+.loan-list{border:1px solid #eee;border-radius:8px;margin-bottom:10px;max-height:180px;overflow-y:auto;}
+.loan-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-bottom:0.5px solid #eee;font-size:13px;}
+.loan-item:last-child{border-bottom:none;}
+.loan-item .li-main{flex:1;min-width:0;}
+.loan-item .li-sku{font-size:11px;color:#888;}
+.loan-qty-btn{width:22px;height:22px;border-radius:50%;border:1px solid #ddd;background:#f5f5f5;cursor:pointer;font-size:13px;line-height:1;padding:0;}
+.loan-empty{padding:12px;text-align:center;font-size:12px;color:#aaa;}
 
-.token-card{background:#fff;border:1px solid #ddd;border-radius:10px;padding:12px 14px;min-width:160px;display:flex;flex-direction:column;gap:6px;}
-.token-room{font-size:13px;font-weight:600;color:#2C3E6B;}
-.token-controls{display:flex;align-items:center;gap:8px;}
-.token-btn{width:28px;height:28px;border-radius:50%;border:1px solid #ddd;background:#f5f5f5;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1;color:#333;flex-shrink:0;}
-.token-btn:hover{background:#e0e0e0;}
-.token-count{font-size:20px;font-weight:700;color:#1F2D45;min-width:24px;text-align:center;}
-.token-label{font-size:11px;color:#aaa;}
-.token-summary-box{padding:8px 16px;border-radius:10px;text-align:center;}
-.ts-lent{background:#FAEEDA;border:1px solid #BA7517;color:#633806;}
-.ts-remain{background:#E1F5EE;border:1px solid #0F6E56;color:#085041;}
-.ts-num{font-size:20px;font-weight:700;display:block;}
-.ts-lbl{font-size:11px;}
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:1000;}
 .modal-overlay.open{display:flex;}
 .modal{background:#fff;border-radius:14px;padding:24px;width:320px;box-shadow:0 8px 32px rgba(0,0,0,.18);}
@@ -184,21 +189,17 @@ tbody td:last-child{border-right:none;}
     <button class="action-btn" onclick="clearClientList()" style="border-radius:0 8px 8px 0;">🗑 清除名單</button>
   </div>
   <span id="clientListStatus" style="font-size:12px;color:#888;align-self:center;"></span>
+  <div class="action-group">
+    <label class="action-btn" style="cursor:pointer;border-radius:8px 0 0 8px;border-left:1px solid #D8D6D2;">
+      📦 上傳產品對照表
+      <input type="file" id="skuExcelInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="loadSkuExcel(event)"/>
+    </label>
+    <button class="action-btn" onclick="clearSkuList()" style="border-radius:0 8px 8px 0;">🗑 清除產品表</button>
+  </div>
+  <span id="skuListStatus" style="font-size:12px;color:#888;align-self:center;"></span>
 </div>
 
 <div class="grid-wrap"><table id="grid"></table></div>
-
-<!-- TOKEN 借用管理 -->
-<div style="margin-top:32px;">
-  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div>
-      <div style="font-size:18px;font-weight:600;color:#1a1a1a;margin-bottom:2px;">🎫 13號備用TOKEN 借用管理</div>
-      <div style="font-size:13px;color:#888;">總數量：5 顆</div>
-    </div>
-    <div id="tokenSummary" style="display:flex;gap:12px;"></div>
-  </div>
-  <div id="tokenGrid" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
-</div>
 
 <!-- 候位新增 Modal -->
 <div class="modal-overlay" id="queueModal">
@@ -240,10 +241,6 @@ tbody td:last-child{border-right:none;}
           <option value="New">New</option>
         </select>
       </div>
-      <div style="margin-bottom:0;">
-        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">餐飲人數</label>
-        <input id="queueGuests" type="number" min="0" placeholder="輸入人數" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
-      </div>
     </div>
 
     <div style="border-top:1px solid #eee;padding-top:10px;margin-bottom:14px;">
@@ -251,14 +248,6 @@ tbody td:last-child{border-right:none;}
       <div style="margin-bottom:8px;">
         <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">CA</label>
         <input id="queueCA" type="text" placeholder="CA 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
-      </div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Expert</label>
-        <input id="queueExpert" type="text" placeholder="Expert 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
-      </div>
-      <div>
-        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Runner</label>
-        <input id="queueRunner" type="text" placeholder="Runner 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
       </div>
     </div>
 
@@ -302,10 +291,6 @@ tbody td:last-child{border-right:none;}
           <option value="New">New</option>
         </select>
       </div>
-      <div style="margin-bottom:0;">
-        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">餐飲人數</label>
-        <input id="clientGuestsInput" type="number" min="0" placeholder="輸入人數（可手動）" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
-      </div>
     </div>
 
     <div style="padding-bottom:4px;">
@@ -313,14 +298,6 @@ tbody td:last-child{border-right:none;}
       <div style="margin-bottom:8px;">
         <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">CA</label>
         <input id="caInput" type="text" placeholder="輸入 CA 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
-      </div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Expert</label>
-        <input id="expertInput" type="text" placeholder="輸入 Expert 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
-      </div>
-      <div style="margin-bottom:14px;">
-        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">Runner</label>
-        <input id="runnerInput" type="text" placeholder="輸入 Runner 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
       </div>
     </div>
 
@@ -331,11 +308,47 @@ tbody td:last-child{border-right:none;}
   </div>
 </div>
 
+<!-- 借出產品 Modal -->
+<div class="modal-overlay" id="loanModal">
+  <div class="modal" style="width:420px;">
+    <h3>📦 借出產品記錄</h3>
+    <p id="loanModalDesc" style="font-size:13px;color:#888;margin-bottom:12px;"></p>
+    <div id="loanList" class="loan-list"></div>
+    <div style="border-top:1px solid #eee;padding-top:10px;margin-bottom:14px;">
+      <div style="font-size:11px;font-weight:600;color:#888;letter-spacing:.5px;margin-bottom:8px;">新增借出產品</div>
+      <div style="margin-bottom:8px;position:relative;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">SKU <span style="font-size:11px;color:#aaa;">（輸入後自動帶出產品名稱）</span></label>
+        <input id="loanSku" type="text" autocomplete="off" placeholder="輸入 SKU" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+        <div id="loanSuggestions" style="border:1px solid #ddd;border-top:none;border-radius:0 0 8px 8px;display:none;max-height:140px;overflow-y:auto;background:#fff;position:absolute;left:0;right:0;z-index:20;"></div>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">產品名稱 <span id="loanNameHint" style="font-size:11px;color:#aaa;"></span></label>
+        <input id="loanName" type="text" placeholder="自動帶出，找不到時可手動輸入" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div style="margin-bottom:8px;">
+        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">出借 CA <span style="font-size:11px;color:#aaa;">（預設帶入此包廂的 CA，可修改）</span></label>
+        <input id="loanCa" type="text" placeholder="CA 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+      </div>
+      <div style="display:flex;gap:8px;align-items:flex-end;">
+        <div style="width:90px;">
+          <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">數量</label>
+          <input id="loanQty" type="number" min="1" value="1" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
+        </div>
+        <button onclick="addLoanItem()" style="flex:1;padding:9px;border-radius:8px;border:1.5px solid #0A7C8C;background:#E8F8FA;color:#055562;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">＋ 加入清單</button>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="ext-opt" onclick="confirmLoan()" style="text-align:center;background:#1F2D45;color:#fff;border:none;">儲存</button>
+      <button class="ext-cancel" onclick="closeLoanModal()">取消</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 import{initializeApp}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import{getDatabase,ref,set,onValue,get}from"https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 const app=initializeApp({apiKey:"AIzaSyB4ywZ1LfnE8M2XT41yrCxl4_a-jYdwQn8",authDomain:"vip-room-scheduler.firebaseapp.com",databaseURL:"https://vip-room-scheduler-default-rtdb.asia-southeast1.firebasedatabase.app",projectId:"vip-room-scheduler",storageBucket:"vip-room-scheduler.firebasestorage.app",messagingSenderId:"1064515548287",appId:"1:1064515548287:web:11f5ab1537cbc60371bb4a"});
-const db=getDatabase(app),dbRef=ref(db,'scheduler'),clientListRef=ref(db,'clientListData');
+const db=getDatabase(app),dbRef=ref(db,'scheduler'),clientListRef=ref(db,'clientListData'),skuListRef=ref(db,'skuListData');
 // 偵測連線狀態
 onValue(ref(db,'.info/connected'),snap=>{
   if(!snap.val()){
@@ -364,7 +377,6 @@ let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'}
 let assignments={};   // {key: storeId} 第一輪
 let returned={};      // {key: bool}
 let staff={};         // {key: {expert, runner, ca}}
-let tokens={};        // {roomName: count}
 let clients={};       // {key: {clientId, clientName, segment}}
 let assignments2={};  // {key: storeId} 第二輪
 let staff2={};
@@ -372,15 +384,34 @@ let clients2={};
 let returned2={};
 let queue=[];         // [{id, storeId, storeName, client, staff}]
 let clientList=[];    // [{id, name, segment}] 從Excel載入
-const TOKEN_TOTAL=5;
-let dragStore=null,dragFrom=null,isSyncing=false;
+let loans={};         // {key: [{sku,name,qty}]} 第一輪借出產品
+let loans2={};        // 第二輪借出產品
+let skuList=[];       // [{sku,name}] 產品對照表
+let skuMap=new Map(); // normSku(sku) -> name
+const normSku=s=>String(s==null?'':s).trim().toUpperCase();
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// 讀取已儲存的產品 SKU 對照表
+onValue(skuListRef,snap=>{
+  const data=snap.val();
+  const arr=data?(Array.isArray(data)?data:Object.values(data)):[];
+  skuList=arr.filter(x=>x&&x.sku);
+  skuMap=new Map(skuList.map(x=>[normSku(x.sku),x.name||'']));
+  const st=document.getElementById('skuListStatus');
+  if(skuList.length){st.textContent=`✓ 已載入 ${skuList.length} 個產品`;st.style.color='#085041';}
+  else{st.textContent='';}
+});
+
+let dragStore=null,dragFrom=null,isSyncing=false,isDragging=false;
+document.addEventListener('dragstart',()=>{isDragging=true;},true);
+document.addEventListener('dragend',()=>{isDragging=false;},true);
+document.addEventListener('drop',()=>{setTimeout(()=>{isDragging=false;},0);},true);
 
 const color=id=>COLORS[STORES.findIndex(s=>s.id===id)%COLORS.length]||COLORS[0];
 const key=(r,s)=>`${r}||${s}`;
 
 function setSyncStatus(s){
   const dot=document.getElementById('syncDot'),txt=document.getElementById('syncStatus');
-  if(s==='connected'){dot.className='sync-dot connected';txt.textContent='已連線，變更即時同步';}
+  if(s==='connected'){dot.className='sync-dot connected';txt.textContent='已連線，變更即時同步';txt.style.color='';}
   else if(s==='saving'){dot.className='sync-dot saving';txt.textContent='儲存中...';}
   else{dot.className='sync-dot';txt.textContent='連線中...';}
 }
@@ -389,7 +420,7 @@ function push(){
   // queue 存成物件格式以保留 null 位置（Firebase 不保留陣列中的 null）
   const queueObj={};
   queue.forEach((item,i)=>{queueObj[i]=item||null;});
-  set(dbRef,{assignments,returned,staff,tokens,clients,assignments2,staff2,clients2,returned2,queue:queueObj,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);setSyncStatus('connected');isSyncing=false;});
+  set(dbRef,{assignments,returned,staff,clients,assignments2,staff2,clients2,returned2,loans,loans2,queue:queueObj,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);isSyncing=false;const dot=document.getElementById('syncDot');dot.className='sync-dot';const t=document.getElementById('syncStatus');t.textContent='⚠ 儲存失敗，請確認網路，或包廂／時段名稱是否含 . # $ / [ ] 等符號';t.style.color='#E24B4A';});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
@@ -400,12 +431,13 @@ onValue(dbRef,snap=>{
   assignments=d.assignments||{};
   returned=d.returned||{};
   staff=d.staff||{};
-  tokens=d.tokens||{};
   clients=d.clients||{};
   assignments2=d.assignments2||{};
   staff2=d.staff2||{};
   clients2=d.clients2||{};
   returned2=d.returned2||{};
+  loans=d.loans||{};
+  loans2=d.loans2||{};
   // Firebase 不保留 null，讀回來的 queue 可能是物件或稀疏陣列，需要重建
   const rawQueue=d.queue||[];
   queue=Array(QUEUE_SLOTS).fill(null);
@@ -415,7 +447,7 @@ onValue(dbRef,snap=>{
     // Firebase 可能把陣列轉成物件 {0:..., 2:...}
     Object.entries(rawQueue).forEach(([k,v])=>{const i=parseInt(k);if(i<QUEUE_SLOTS&&v)queue[i]=v;});
   }
-  setSyncStatus('connected');buildAll();buildTokenSection();buildQueuePanel();
+  setSyncStatus('connected');buildAll();buildQueuePanel();
 });
 
 // Settings
@@ -433,44 +465,33 @@ window.addStore=()=>{STORES.push({id:'store_'+Date.now(),name:''});renderPanel()
 window.removeStore=i=>{STORES.splice(i,1);renderPanel();};
 window.applySettings=()=>{
   const oldSlots=[...SLOTS],oldRooms=[...ROOMS];
-  SLOTS=Array.from(document.querySelectorAll('[id^="slot-"]')).map(el=>el.value.trim()).filter(Boolean);
-  ROOMS=Array.from(document.querySelectorAll('[id^="room-"]')).map(el=>el.value.trim()).filter(Boolean);
+  // 依畫面欄位順序讀取（不先過濾空白，避免對應錯位）
+  const slotVals=Array.from(document.querySelectorAll('[id^="slot-"]')).map(el=>el.value.trim());
+  const roomVals=Array.from(document.querySelectorAll('[id^="room-"]')).map(el=>el.value.trim());
+  const bad=[...slotVals,...roomVals].filter(v=>/[.#$\/\[\]]/.test(v));
+  if(bad.length){alert('時段／包廂名稱不可包含 . # $ / [ ] 這些符號（系統儲存限制）：\n'+bad.join('、')+'\n\n請改用其他符號，例如「-」或空白。');SLOTS=oldSlots;ROOMS=oldRooms;return;}
+  SLOTS=slotVals.filter(Boolean);
+  ROOMS=roomVals.filter(Boolean);
   STORES=STORES.map((s,i)=>{const el=document.getElementById(`store-${i}`);return el?{...s,name:el.value.trim()||s.name}:s;}).filter(s=>s.name);
 
-  // 只清除已不存在的 slot 或 room 的資料，保留有效的
-  const validKeys=new Set();
-  SLOTS.forEach(slot=>ROOMS.forEach(room=>validKeys.add(key(room,slot))));
-  [assignments,returned,staff,clients,assignments2,staff2,clients2,returned2].forEach(obj=>{
-    Object.keys(obj).forEach(k=>{if(!validKeys.has(k))delete obj[k];});
-  });
-  // TOKEN：只刪除不在 ROOMS 裡的包廂 key（保留 __other__、__borrower__ 等特殊 key）
-  Object.keys(tokens).forEach(room=>{
-    if(room.startsWith('__'))return; // 保留特殊 key
-    if(!ROOMS.includes(room)&&!room.endsWith('__borrower__'))delete tokens[room];
-  });
-
-  // 處理包廂改名：舊名稱→新名稱（依 index 對應）
-  const renameMap={};
-  oldRooms.forEach((oldName,i)=>{if(ROOMS[i]&&ROOMS[i]!==oldName)renameMap[oldName]=ROOMS[i];});
-  if(Object.keys(renameMap).length>0){
-    [assignments,returned,staff].forEach(obj=>{
+  // 改名對照：依欄位順序，舊名稱 -> 新名稱。已分配的資料會跟著搬到新名稱，不會被清掉
+  const roomMap={},slotMap={};
+  oldRooms.forEach((o,i)=>{if(o&&roomVals[i]&&roomVals[i]!==o)roomMap[o]=roomVals[i];});
+  oldSlots.forEach((o,i)=>{if(o&&slotVals[i]&&slotVals[i]!==o)slotMap[o]=slotVals[i];});
+  if(Object.keys(roomMap).length||Object.keys(slotMap).length){
+    [assignments,returned,staff,clients,assignments2,staff2,clients2,returned2,loans,loans2].forEach(obj=>{
+      const moves=[];
       Object.keys(obj).forEach(k=>{
         const[room,slot]=k.split('||');
-        if(renameMap[room]){
-          const newK=key(renameMap[room],slot);
-          obj[newK]=obj[k];
-          delete obj[k];
-        }
+        const nr=roomMap[room]||room,ns=slotMap[slot]||slot;
+        if(nr!==room||ns!==slot)moves.push([k,key(nr,ns),obj[k]]);
       });
-    });
-    // TOKEN 改名
-    Object.keys(renameMap).forEach(oldName=>{
-      if(tokens[oldName]!==undefined){
-        tokens[renameMap[oldName]]=tokens[oldName];
-        delete tokens[oldName];
-      }
+      moves.forEach(m=>delete obj[m[0]]);   // 先全部移除再寫入，避免名稱互換時互相覆蓋
+      moves.forEach(m=>{obj[m[1]]=m[2];});
     });
   }
+  // 注意：不再刪除「目前畫面上沒有的時段／包廂」的資料。
+  // 即使暫時移除某時段或包廂，已分配的資料仍保留，重新加回同名稱就會恢復。
 
   document.getElementById('settingsPanel').classList.remove('open');
   buildAll();push();
@@ -651,8 +672,10 @@ function buildGrid(){
         const item=queue[idx];
         if(!item)return;
         assignments[k]=item.storeId;
-        if(item.client&&Object.keys(item.client).length>0)clients[k]=item.client;
-        if(item.staff&&Object.keys(item.staff).length>0)staff[k]=item.staff;
+        delete assignments2[k];delete staff2[k];delete clients2[k];delete returned2[k];delete loans2[k];
+        if(item.client&&Object.keys(item.client).length>0)clients[k]=item.client;else delete clients[k];
+        if(item.staff&&Object.keys(item.staff).length>0)staff[k]=item.staff;else delete staff[k];
+        if(item.loans&&item.loans.length>0)loans[k]=item.loans;else delete loans[k];
         delete returned[k];
         queue[idx]=null;
         buildQueuePanel();render();push();
@@ -668,6 +691,8 @@ function buildGrid(){
         if(staff2[dragFrom])  {staff2[k]=staff2[dragFrom];  delete staff2[dragFrom];}  else delete staff2[k];
         if(clients2[dragFrom]){clients2[k]=clients2[dragFrom];delete clients2[dragFrom];}else delete clients2[k];
         delete returned2[dragFrom];delete returned2[k];
+        if(loans[dragFrom]){loans[k]=loans[dragFrom];delete loans[dragFrom];}else delete loans[k];
+        if(loans2[dragFrom]){loans2[k]=loans2[dragFrom];delete loans2[dragFrom];}else delete loans2[k];
         delete returned[dragFrom];
         delete returned[k];
         delete assignments[dragFrom];
@@ -677,20 +702,24 @@ function buildGrid(){
   });
 }
 
+const unretQty=arr=>(arr||[]).filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
+const unretTag=arr=>{const n=unretQty(arr);return n?`｜📦 未還 ${n} 件`:''};
 function cellInfoHTML(sid,sfObj,clObj,isRet,k,slot,isR2=false){
   const s=STORES.find(x=>x.id===sid);if(!s)return'';
   const c=color(sid);
   const cParts=[];
-  if(clObj.clientId)cParts.push(`<span class="client-badge">ID: ${clObj.clientId}</span>`);
-  if(clObj.clientName)cParts.push(`<span class="client-badge">Name: ${clObj.clientName}</span>`);
-  if(clObj.segment)cParts.push(`<span class="client-badge">Seg: ${clObj.segment}</span>`);
+  if(clObj.clientId)cParts.push(`<span class="client-badge">ID: ${esc(clObj.clientId)}</span>`);
+  if(clObj.clientName)cParts.push(`<span class="client-badge">Name: ${esc(clObj.clientName)}</span>`);
+  if(clObj.segment)cParts.push(`<span class="client-badge">Seg: ${esc(clObj.segment)}</span>`);
   const pParts=[];
-  if(sfObj.ca)pParts.push(`<span class="staff-badge">🧑‍💼 ${sfObj.ca}</span>`);
-  if(sfObj.expert)pParts.push(`<span class="staff-badge">💡 ${sfObj.expert}</span>`);
-  if(sfObj.runner)pParts.push(`<span class="staff-badge">🏃 ${sfObj.runner}</span>`);
+  if(sfObj.ca)pParts.push(`<span class="staff-badge">CA: ${esc(sfObj.ca)}</span>`);
   const hasC=cParts.length>0,hasP=pParts.length>0;
-  const infoLabel=(hasC||hasP)?`${cParts.join('')}${hasC&&hasP?'<hr class="cell-divider-a"/>':''}${pParts.join('')}`:'';
-  const retLabel=isRet?`<span class="ret-badge">已歸還</span>`:'';
+  const infoLabel=(hasC||hasP)?`${cParts.join('')}${pParts.join('')}`:'';
+  const loanArr=(isR2?loans2:loans)[k]||[];
+  const keL=k.replace(/'/g,"\\'");
+  const unretN=loanArr.filter(it=>!it.returned).reduce((s,it)=>s+(parseInt(it.qty)||1),0);
+  const loanHTML=loanArr.length?`<div class="loan-box"><span class="loan-sum ${unretN?'':'ok'}">${unretN?`📦 未還 ${unretN} 件`:'✓ 全部已還'}</span>${loanArr.map((it,ix)=>`<span class="loan-line ${it.returned?'ret':''}" title="點一下切換已歸還" onclick="toggleLoanReturn('${keL}',${isR2?'true':'false'},${ix},event)">${it.returned?'✓':'📦'} ${esc(it.name||it.sku)}｜${(it.ca||sfObj.ca)?esc(it.ca||sfObj.ca)+'｜':''}×${esc(it.qty||1)}</span>`).join('')}</div>`:'';
+  const retLabel=(isRet?`<span class="ret-badge">已歸還</span>`:'')+loanHTML;
   const retStyle=isRet?'opacity:.5;background:#f5f5f5;border:1.5px solid #ddd;color:#aaa;':'';
   const ke=k.replace(/'/g,"\\'");
   const sname=s.name.replace(/'/g,"\\'");
@@ -700,15 +729,17 @@ function cellInfoHTML(sid,sfObj,clObj,isRet,k,slot,isR2=false){
       <span class="store-label" style="${isRet?'color:#aaa;':''}">${s.name}</span>
       ${infoLabel}${retLabel}
       <button class="remove-btn" onclick="removeCell2('${ke}',event)">✕</button>
+      <button class="loan-btn" onclick="openLoanModal('${ke}',true,'${sname}','${slote}',event)" title="借出產品">📦</button>
       ${!isRet?`<button class="staff-btn" onclick="openInfoModal2('${ke}','${sname}','${slote}',event)" title="填寫資訊">✏️</button>`:''}
       <button class="return-btn ${isRet?'unreturned':''}" onclick="toggleReturn2('${ke}',event)" title="${isRet?'取消歸還':'標記已歸還'}">${isRet?'↩':'✓'}</button>
     </div>`;
   }
-  const guestLabel=clObj.guests?` <span style="font-size:11px;font-weight:400;opacity:.8;">（餐飲 ${clObj.guests} 人）</span>`:'';
+  const guestLabel='';
   return `<div class="assigned" draggable="${isRet?'false':'true'}" style="${retStyle||`background:${c.bg};border:2px solid ${c.border};color:${c.text};`}">
     <span class="store-label" style="${isRet?'color:#aaa;':''}">${s.name}${guestLabel}</span>
     ${infoLabel}${retLabel}
     <button class="remove-btn" onclick="removeCell('${ke}',event)">✕</button>
+    <button class="loan-btn" onclick="openLoanModal('${ke}',false,'${sname}','${slote}',event)" title="借出產品">📦</button>
     ${!isRet?`<button class="staff-btn" onclick="openInfoModal('${ke}','${sname}','${slote}',event)" title="填寫資訊">✏️</button>`:''}
     <button class="return-btn ${isRet?'unreturned':''}" onclick="toggleReturn('${ke}',event)" title="${isRet?'取消歸還':'標記已歸還'}">${isRet?'↩':'✓'}</button>
   </div>`;
@@ -751,21 +782,22 @@ function render(){
       const s2=STORES.find(x=>x.id===sid2);
       const c2=s2?color(sid2):{bg:'#eee',border:'#ccc',text:'#666'};
       const ke=k.replace(/'/g,"\\'");
-      const uid='r'+Math.random().toString(36).slice(2,7);
+      const uid='r'+ROOMS.indexOf(room)+'_'+SLOTS.indexOf(slot);
+      const mh=n=>openRounds.has(uid+':'+n)?'500px':'0px';
 
       const r1mini=`<div class="round-hdr-a" id="h1-${uid}" onclick="toggleRound('${uid}',1)" style="background:#e8e8e8;color:#777;">
-        <span>第一輪 · ${s1?s1.name:'?'} · ✓ 已歸還</span><span class="chv">▾</span>
+        <span>第一輪 · ${s1?s1.name:'?'} · ✓ 已歸還${unretTag(loans[k])}</span><span class="chv">▾</span>
       </div>
-      <div id="d1-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
+      <div id="d1-${uid}" style="overflow:hidden;max-height:${mh(1)};transition:max-height .25s;">
         ${cellInfoHTML(sid,staff[k]||{},clients[k]||{},isRet,k,slot,false)}
       </div>`;
 
       const r2hdrBg=isRet2?'background:#e8e8e8;color:#777;':`background:${c2.border};color:#fff;`;
       const r2status=isRet2?'✓ 已歸還':'進行中';
       const r2html=`<div class="round-hdr-a" id="h2-${uid}" onclick="toggleRound('${uid}',2)" style="${r2hdrBg}">
-        <span>第二輪 · ${s2?s2.name:'?'} · ${r2status}</span><span class="chv">▾</span>
+        <span>第二輪 · ${s2?s2.name:'?'} · ${r2status}${unretTag(loans2[k])}</span><span class="chv">▾</span>
       </div>
-      <div id="d2-${uid}" style="overflow:hidden;max-height:0;transition:max-height .25s;">
+      <div id="d2-${uid}" style="overflow:hidden;max-height:${mh(2)};transition:max-height .25s;">
         ${cellInfoHTML(sid2,staff2[k]||{},clients2[k]||{},isRet2,k,slot,true)}
       </div>`;
 
@@ -777,10 +809,11 @@ function render(){
   });
 }
 
-window.removeCell=(k,e)=>{e.stopPropagation();delete assignments[k];delete returned[k];delete staff[k];delete clients[k];delete assignments2[k];delete staff2[k];delete clients2[k];delete returned2[k];render();push();};
+window.removeCell=(k,e)=>{e.stopPropagation();delete assignments[k];delete returned[k];delete staff[k];delete clients[k];delete assignments2[k];delete staff2[k];delete clients2[k];delete returned2[k];delete loans[k];delete loans2[k];render();push();};
 window.toggleReturn=(k,e)=>{e.stopPropagation();returned[k]=!returned[k];render();push();};
-window.removeCell2=(k,e)=>{e.stopPropagation();delete assignments2[k];delete staff2[k];delete clients2[k];delete returned2[k];render();push();};
+window.removeCell2=(k,e)=>{e.stopPropagation();delete assignments2[k];delete staff2[k];delete clients2[k];delete returned2[k];delete loans2[k];render();push();};
 window.toggleReturn2=(k,e)=>{e.stopPropagation();returned2[k]=!returned2[k];render();push();};
+const openRounds=new Set();
 window.toggleRound=(uid,n)=>{
   const hdr=document.getElementById(`h${n}-${uid}`);
   const det=document.getElementById(`d${n}-${uid}`);
@@ -788,6 +821,7 @@ window.toggleRound=(uid,n)=>{
   const isOpen=det.style.maxHeight!=='0px'&&det.style.maxHeight!=='';
   det.style.maxHeight=isOpen?'0px':'500px';
   hdr.classList.toggle('open',!isOpen);
+  if(isOpen)openRounds.delete(uid+':'+n);else openRounds.add(uid+':'+n);
 };
 
 // 第二輪 store 選擇彈窗
@@ -826,9 +860,6 @@ window.openInfoModal2=(k,storeName,slot,e)=>{
   document.getElementById('clientIdInput').value=cl.clientId||'';
   document.getElementById('clientNameInput').value=cl.clientName||'';
   document.getElementById('caInput').value=sf.ca||'';
-  document.getElementById('expertInput').value=sf.expert||'';
-  document.getElementById('runnerInput').value=sf.runner||'';
-  document.getElementById('clientGuestsInput').value=cl.guests||'';
   const segSel=document.getElementById('clientSegInput');
   segSel.value=cl.segment||'';
   if(cl.segment&&segSel.value!==cl.segment){
@@ -852,9 +883,6 @@ window.openInfoModal=(k,storeName,slot,e)=>{
   document.getElementById('clientIdInput').value=cl.clientId||'';
   document.getElementById('clientNameInput').value=cl.clientName||'';
   document.getElementById('caInput').value=sf.ca||'';
-  document.getElementById('expertInput').value=sf.expert||'';
-  document.getElementById('runnerInput').value=sf.runner||'';
-  document.getElementById('clientGuestsInput').value=cl.guests||'';
   const segSel=document.getElementById('clientSegInput');
   segSel.value=cl.segment||'';
   if(cl.segment&&segSel.value!==cl.segment){
@@ -889,16 +917,13 @@ window.confirmInfo=()=>{
   const clientId=document.getElementById('clientIdInput').value.trim();
   const clientName=document.getElementById('clientNameInput').value.trim();
   const segment=document.getElementById('clientSegInput').value.trim();
-  const guests=document.getElementById('clientGuestsInput').value.trim();
   const ca=document.getElementById('caInput').value.trim();
-  const expert=document.getElementById('expertInput').value.trim();
-  const runner=document.getElementById('runnerInput').value.trim();
   if(isR2){
-    if(clientId||clientName||segment||guests){clients2[k]={clientId,clientName,segment,guests};}else{delete clients2[k];}
-    if(ca||expert||runner){staff2[k]={ca,expert,runner};}else{delete staff2[k];}
+    if(clientId||clientName||segment){clients2[k]={clientId,clientName,segment};}else{delete clients2[k];}
+    if(ca){staff2[k]={ca};}else{delete staff2[k];}
   }else{
-    if(clientId||clientName||segment||guests){clients[k]={clientId,clientName,segment,guests};}else{delete clients[k];}
-    if(ca||expert||runner){staff[k]={ca,expert,runner};}else{delete staff[k];}
+    if(clientId||clientName||segment){clients[k]={clientId,clientName,segment};}else{delete clients[k];}
+    if(ca){staff[k]={ca};}else{delete staff[k];}
   }
   closeInfoModal();render();push();
 };
@@ -916,12 +941,12 @@ window.addEventListener('DOMContentLoaded',()=>{
       c.name.toLowerCase().includes(q)
     ).slice(0,8);
     if(!matches.length){box.style.display='none';return;}
-    box.innerHTML=matches.map(c=>`<div style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #eee;line-height:1.5;" onmousedown="selectClient('${c.id.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}','${c.segment.replace(/'/g,"\\'")}','${(c.ca||'').replace(/'/g,"\\'")}','${(c.guests||'').replace(/'/g,"\\'")}')">
-    <strong>${c.id}</strong> ${c.name}
-    <span style="color:#534AB7;font-size:11px;margin-left:6px;">${c.segment}</span>
-    ${c.ca?`<span style="color:#888;font-size:11px;margin-left:6px;">CA: ${c.ca}</span>`:''}
-    ${c.guests?`<span style="color:#888;font-size:11px;margin-left:6px;">餐飲: ${c.guests}人</span>`:''}
+    box.innerHTML=matches.map(c=>`<div data-cid="${esc(c.id)}" style="padding:8px 12px;cursor:pointer;font-size:13px;border-bottom:0.5px solid #eee;line-height:1.5;">
+    <strong>${esc(c.id)}</strong> ${esc(c.name)}
+    <span style="color:#534AB7;font-size:11px;margin-left:6px;">${esc(c.segment)}</span>
+    ${c.ca?`<span style="color:#888;font-size:11px;margin-left:6px;">CA: ${esc(c.ca)}</span>`:''}
   </div>`).join('');
+    box.querySelectorAll('[data-cid]').forEach(d=>d.addEventListener('mousedown',ev=>{ev.preventDefault();const c=clientList.find(x=>x.id===d.dataset.cid);if(c)selectClient(c.id,c.name,c.segment,c.ca||'');}));
     box.style.display='block';
   });
 });
@@ -937,7 +962,6 @@ window.selectClient=(id,name,segment,ca,guests)=>{
   }
   const caInput=document.getElementById('caInput');
   if(ca&&!caInput.value.trim())caInput.value=ca;
-  if(guests)document.getElementById('clientGuestsInput').value=guests;
   document.getElementById('clientSuggestions').style.display='none';
 };
 
@@ -1007,7 +1031,155 @@ window.clearClientList=()=>{
   document.getElementById('clientListStatus').style.color='#888';
   updateSegmentDropdown([]);
 };
-window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};tokens={};clients={};assignments2={};staff2={};clients2={};returned2={};queue=Array(QUEUE_SLOTS).fill(null);render();buildTokenSection();buildQueuePanel();push();}};
+window.clearAll=()=>{if(confirm('確定要清除所有分配嗎？')){assignments={};returned={};staff={};clients={};assignments2={};staff2={};clients2={};returned2={};loans={};loans2={};queue=Array(QUEUE_SLOTS).fill(null);render();buildQueuePanel();push();}};
+// ── Excel 產品 SKU 對照表上傳 ──────────────────────────────
+window.loadSkuExcel=(e)=>{
+  const file=e.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      // 找標頭列：含 SKU 的欄位；產品名稱欄位找 產品/品名/名稱/name/description/product
+      let headerRow=-1,skuCol=-1,nameCol=-1,fbRow=-1,fbSku=-1;
+      for(let r=0;r<Math.min(10,data.length);r++){
+        const lower=(data[r]||[]).map(h=>String(h||'').trim().toLowerCase());
+        const si=lower.findIndex(h=>h.includes('sku')||h==='款號'||h==='商品編號'||h==='料號');
+        if(si<0)continue;
+        const ni=lower.findIndex((h,i)=>i!==si&&(h.includes('產品')||h.includes('品名')||h.includes('名稱')||h.includes('name')||h.includes('description')||h.includes('product')||h.includes('描述')));
+        if(ni>=0){headerRow=r;skuCol=si;nameCol=ni;break;}   // 同時有 SKU 與名稱欄，優先採用
+        if(fbRow<0){fbRow=r;fbSku=si;}
+      }
+      if(headerRow<0&&fbRow>=0){headerRow=fbRow;skuCol=fbSku;}
+      if(headerRow===-1){ // 找不到標頭：假設第一列是標頭、A欄=SKU、B欄=名稱
+        headerRow=0;skuCol=0;nameCol=1;
+      }
+      if(nameCol===-1)nameCol=skuCol===0?1:0;
+      const seen=new Set();
+      const list=[];
+      data.slice(headerRow+1).forEach(row=>{
+        const rawSku=row[skuCol];const sku=(typeof rawSku==='number'?rawSku.toLocaleString('fullwide',{useGrouping:false,maximumFractionDigits:6}):String(rawSku==null?'':rawSku)).trim();
+        const name=String(row[nameCol]==null?'':row[nameCol]).trim();
+        if(!sku||!name)return;
+        const n=normSku(sku);
+        if(seen.has(n))return;
+        seen.add(n);list.push({sku,name});
+      });
+      if(!list.length){alert('找不到有效的 SKU / 產品名稱資料，請確認 Excel 格式（需有 SKU 與 產品名稱 兩欄）');return;}
+      set(skuListRef,list).then(()=>{
+        const st=document.getElementById('skuListStatus');
+        st.textContent=`✓ 已載入 ${list.length} 個產品（已同步）`;st.style.color='#085041';
+      });
+    }catch(err){alert('讀取失敗，請確認檔案格式');console.error(err);}
+  };
+  reader.readAsArrayBuffer(file);
+  e.target.value='';
+};
+window.clearSkuList=()=>{
+  if(!confirm('確定要清除產品對照表嗎？（已記錄的借出產品不會被刪除）'))return;
+  set(skuListRef,null);
+};
+
+// ── 借出產品記錄 ──────────────────────────────
+let pendingLoanKey=null,pendingLoanR2=false,loanDraft=[],loanDefaultCa='';
+window.openLoanModal=(k,isR2,storeName,slot,e)=>{
+  if(e)e.stopPropagation();
+  pendingLoanKey=k;pendingLoanR2=!!isR2;
+  loanDraft=((isR2?loans2:loans)[k]||[]).map(x=>({...x}));
+  const ca=((isR2?staff2:staff)[k]||{}).ca;
+  document.getElementById('loanModalDesc').textContent=`${isR2?'[第二輪] ':''}${storeName}　${slot}${ca?`　CA: ${ca}`:''}`;
+  loanDefaultCa=ca||'';
+  document.getElementById('loanCa').value=loanDefaultCa;
+  document.getElementById('loanSku').value='';
+  document.getElementById('loanName').value='';
+  document.getElementById('loanQty').value='1';
+  document.getElementById('loanNameHint').textContent=skuList.length?'':'（尚未上傳產品對照表，請手動輸入）';
+  document.getElementById('loanSuggestions').style.display='none';
+  renderLoanDraft();
+  document.getElementById('loanModal').classList.add('open');
+  setTimeout(()=>document.getElementById('loanSku').focus(),100);
+};
+window.closeLoanModal=()=>{document.getElementById('loanModal').classList.remove('open');pendingLoanKey=null;loanDraft=[];};
+function renderLoanDraft(){
+  const el=document.getElementById('loanList');
+  if(!loanDraft.length){el.innerHTML='<div class="loan-empty">尚未記錄任何借出產品</div>';return;}
+  el.innerHTML=loanDraft.map((it,i)=>`<div class="loan-item">
+    <label style="display:flex;flex-direction:column;align-items:center;font-size:10px;color:#0F6E56;cursor:pointer;gap:2px;"><input type="checkbox" ${it.returned?'checked':''} onchange="toggleDraftReturn(${i})"/>已還</label>
+    <div class="li-main" style="${it.returned?'text-decoration:line-through;opacity:.5;':''}"><div>${esc(it.name||it.sku)}</div><div class="li-sku">${it.sku?'SKU: '+esc(it.sku)+'　':''}出借: ${esc(it.ca||loanDefaultCa||'（未填）')}</div></div>
+    <button class="loan-qty-btn" onclick="loanQtyDelta(${i},-1)">－</button>
+    <strong style="min-width:18px;text-align:center;">${esc(it.qty)}</strong>
+    <button class="loan-qty-btn" onclick="loanQtyDelta(${i},1)">＋</button>
+    <button class="del-btn" onclick="removeLoanItem(${i})">✕</button>
+  </div>`).join('');
+}
+window.toggleDraftReturn=i=>{const it=loanDraft[i];if(!it)return;it.returned=!it.returned;it.returnedAt=it.returned?new Date().toISOString():'';renderLoanDraft();};
+window.toggleLoanReturn=(k,isR2,ix,e)=>{
+  if(e)e.stopPropagation();
+  const arr=(isR2?loans2:loans)[k];if(!arr||!arr[ix])return;
+  const it=arr[ix];it.returned=!it.returned;it.returnedAt=it.returned?new Date().toISOString():'';
+  render();push();
+};
+window.loanQtyDelta=(i,d)=>{const it=loanDraft[i];if(!it)return;it.qty=Math.max(1,(parseInt(it.qty)||1)+d);renderLoanDraft();};
+window.removeLoanItem=i=>{loanDraft.splice(i,1);renderLoanDraft();};
+window.addLoanItem=()=>{
+  const sku=document.getElementById('loanSku').value.trim();
+  const name=document.getElementById('loanName').value.trim();
+  const qty=Math.max(1,parseInt(document.getElementById('loanQty').value)||1);
+  const ca=document.getElementById('loanCa').value.trim();
+  if(!sku&&!name){alert('請輸入 SKU 或產品名稱');return;}
+  const same=loanDraft.find(x=>normSku(x.sku)===normSku(sku)&&(x.name||'')===name&&(x.ca||'')===ca&&sku);
+  if(same)same.qty=(parseInt(same.qty)||1)+qty;
+  else loanDraft.push({sku,name,qty,ca});
+  document.getElementById('loanSku').value='';
+  document.getElementById('loanName').value='';
+  document.getElementById('loanQty').value='1';
+  document.getElementById('loanCa').value=loanDefaultCa;
+  document.getElementById('loanNameHint').textContent='';
+  document.getElementById('loanSuggestions').style.display='none';
+  renderLoanDraft();
+  document.getElementById('loanSku').focus();
+};
+window.confirmLoan=()=>{
+  if(!pendingLoanKey)return;
+  // 輸入框內尚未按「加入清單」的內容，一併加入
+  if(document.getElementById('loanSku').value.trim()||document.getElementById('loanName').value.trim())addLoanItem();
+  const target=pendingLoanR2?loans2:loans;
+  if(loanDraft.length)target[pendingLoanKey]=loanDraft.map(x=>({sku:x.sku||'',name:x.name||'',qty:parseInt(x.qty)||1,ca:x.ca||'',returned:!!x.returned,returnedAt:x.returnedAt||''}));
+  else delete target[pendingLoanKey];
+  closeLoanModal();render();push();
+};
+window.pickLoanSku=(sku)=>{
+  document.getElementById('loanSku').value=sku;
+  document.getElementById('loanName').value=skuMap.get(normSku(sku))||'';
+  document.getElementById('loanNameHint').textContent='✓ 已自動帶出';
+  document.getElementById('loanSuggestions').style.display='none';
+  document.getElementById('loanQty').focus();
+};
+window.addEventListener('DOMContentLoaded',()=>{
+  const inp=document.getElementById('loanSku');
+  if(!inp)return;
+  inp.addEventListener('input',function(){
+    const raw=this.value.trim();const q=normSku(raw);
+    const box=document.getElementById('loanSuggestions');
+    const nameEl=document.getElementById('loanName');
+    const hint=document.getElementById('loanNameHint');
+    if(!q){box.style.display='none';hint.textContent='';return;}
+    if(skuMap.has(q)){ // 完全符合：直接帶出名稱
+      nameEl.value=skuMap.get(q);hint.textContent='✓ 已自動帶出';
+    }else if(skuList.length){
+      hint.textContent='（找不到此 SKU，可手動輸入名稱）';
+    }
+    const matches=skuList.filter(x=>normSku(x.sku).includes(q)&&normSku(x.sku)!==q).slice(0,8);
+    if(!matches.length){box.style.display='none';return;}
+    box.innerHTML=matches.map(x=>`<div style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:0.5px solid #eee;" data-sku="${esc(x.sku)}"><strong>${esc(x.sku)}</strong> ${esc(x.name)}</div>`).join('');
+    box.querySelectorAll('[data-sku]').forEach(d=>d.addEventListener('mousedown',ev=>{ev.preventDefault();pickLoanSku(d.dataset.sku);}));
+    box.style.display='block';
+  });
+  inp.addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();document.getElementById('loanQty').focus();}});
+  document.getElementById('loanQty').addEventListener('keydown',ev=>{if(ev.key==='Enter'){ev.preventDefault();addLoanItem();}});
+});
+
 // ── 候位排隊 ──────────────────────────────
 const QUEUE_SLOTS=5;
 let dragQueueIdx=null;
@@ -1028,18 +1200,16 @@ function buildQueuePanel(){
 
     if(item){
       const cl=item.client||{},sf=item.staff||{};
-      const guestTxt=cl.guests?`（餐飲${cl.guests}人）`:'';
+      const guestTxt='';
       slot.draggable=true;
       slot.innerHTML=`
         <div class="queue-card">
           <div class="queue-num">順位 ${idx+1}</div>
           <div class="queue-store">${item.storeName||''}${guestTxt}</div>
           <div class="queue-info">
-            ${cl.clientName?`Name: ${cl.clientName}<br>`:''}
+            ${cl.clientName?`Name: ${esc(cl.clientName)}<br>`:''}
             ${cl.segment?`Seg: ${cl.segment}<br>`:''}
-            ${sf.ca?`🧑‍💼 ${sf.ca}<br>`:''}
-            ${sf.expert?`💡 ${sf.expert}<br>`:''}
-            ${sf.runner?`🏃 ${sf.runner}`:''}
+            ${sf.ca?`CA: ${esc(sf.ca)}<br>`:''}
           </div>
           <button class="queue-del" onclick="removeQueue(${idx})">✕</button>
         </div>`;
@@ -1074,8 +1244,8 @@ function buildQueuePanel(){
         const storeId=assignments[dragFrom];
         const s=STORES.find(x=>x.id===storeId);
         if(s){
-          queue[idx]={storeId,storeName:s.name,client:{...(clients[dragFrom]||{})},staff:{...(staff[dragFrom]||{})}};
-          delete assignments[dragFrom];delete returned[dragFrom];delete staff[dragFrom];delete clients[dragFrom];
+          queue[idx]={storeId,storeName:s.name,client:{...(clients[dragFrom]||{})},staff:{...(staff[dragFrom]||{})},loans:[...(loans[dragFrom]||[])]};
+          delete assignments[dragFrom];delete returned[dragFrom];delete staff[dragFrom];delete clients[dragFrom];delete loans[dragFrom];
           dragFrom=null;dragStore=null;
           buildQueuePanel();render();push();
         }
@@ -1093,10 +1263,7 @@ window.openQueueAddModal=(targetIdx=null)=>{
   document.getElementById('queueClientId').value='';
   document.getElementById('queueClientName').value='';
   document.getElementById('queueSegment').value='';
-  document.getElementById('queueGuests').value='';
   document.getElementById('queueCA').value='';
-  document.getElementById('queueExpert').value='';
-  document.getElementById('queueRunner').value='';
   document.getElementById('queueSuggestions').style.display='none';
   document.getElementById('queueModal').classList.add('open');
   setTimeout(()=>document.getElementById('queueClientId').focus(),100);
@@ -1111,12 +1278,9 @@ window.confirmQueueAdd=()=>{
     clientId:document.getElementById('queueClientId').value.trim(),
     clientName:document.getElementById('queueClientName').value.trim(),
     segment:document.getElementById('queueSegment').value.trim(),
-    guests:document.getElementById('queueGuests').value.trim(),
   };
   const sf={
     ca:document.getElementById('queueCA').value.trim(),
-    expert:document.getElementById('queueExpert').value.trim(),
-    runner:document.getElementById('queueRunner').value.trim(),
   };
   while(queue.length<QUEUE_SLOTS)queue.push(null);
   const targetIdx=pendingQueueSlotIdx!==null?pendingQueueSlotIdx:queue.findIndex(x=>x===null);
@@ -1139,7 +1303,8 @@ window.addEventListener('DOMContentLoaded',()=>{
     if(!q||clientList.length===0){box.style.display='none';return;}
     const matches=clientList.filter(c=>c.id.toLowerCase().includes(q)||c.name.toLowerCase().includes(q)).slice(0,6);
     if(!matches.length){box.style.display='none';return;}
-    box.innerHTML=matches.map(c=>`<div style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:0.5px solid #eee;" onmousedown="selectQueueClient('${c.id.replace(/'/g,"\\'")}','${c.name.replace(/'/g,"\\'")}','${c.segment.replace(/'/g,"\\'")}','${(c.ca||'').replace(/'/g,"\\'")}','${(c.guests||'').replace(/'/g,"\\'")}')"><strong>${c.id}</strong> ${c.name} <span style="color:#534AB7;font-size:11px;">${c.segment}</span>${c.guests?`<span style="color:#888;font-size:11px;margin-left:4px;">餐飲:${c.guests}人</span>`:''}</div>`).join('');
+    box.innerHTML=matches.map(c=>`<div data-cid="${esc(c.id)}" style="padding:7px 12px;cursor:pointer;font-size:12px;border-bottom:0.5px solid #eee;"><strong>${esc(c.id)}</strong> ${esc(c.name)} <span style="color:#534AB7;font-size:11px;">${esc(c.segment)}</span></div>`).join('');
+    box.querySelectorAll('[data-cid]').forEach(d=>d.addEventListener('mousedown',ev=>{ev.preventDefault();const c=clientList.find(x=>x.id===d.dataset.cid);if(c)selectQueueClient(c.id,c.name,c.segment,c.ca||'');}));
     box.style.display='block';
   });
 });
@@ -1148,128 +1313,28 @@ window.selectQueueClient=(id,name,segment,ca,guests)=>{
   document.getElementById('queueClientName').value=name;
   document.getElementById('queueSegment').value=segment;
   if(ca)document.getElementById('queueCA').value=ca;
-  if(guests)document.getElementById('queueGuests').value=guests;
   document.getElementById('queueSuggestions').style.display='none';
 };
 
 function buildAll(){buildLegend();buildGrid();render();buildQueuePanel();}
 
-// ── TOKEN 借用管理 ──────────────────────────────
-function totalLent(){
-  return Object.entries(tokens).reduce((s,[k,v])=>{
-    if(k==='__other_note__'||k==='__other_borrower__'||k.endsWith('__borrower__'))return s;
-    return s+(typeof v==='number'?v:0);
-  },0);
-}
-function buildTokenSection(){
-  const lent=totalLent();
-  document.getElementById('tokenSummary').innerHTML=`
-    <div class="token-summary-box ts-lent"><span class="ts-num">${lent}</span><span class="ts-lbl">已借出</span></div>`;
-  const grid=document.getElementById('tokenGrid');
-  grid.innerHTML='';
-  ROOMS.forEach(room=>{
-    const k=safeKey(room);
-    const cnt=tokens[k]||0;
-    const borrower=tokens[k+'__borrower__']||'';
-    const card=document.createElement('div');
-    card.className='token-card';
-    card.innerHTML=`
-      <div class="token-room">${room}</div>
-      <div class="token-controls">
-        <button class="token-btn" data-room="${room}" data-delta="-1">－</button>
-        <span class="token-count">${cnt}</span>
-        <button class="token-btn" data-room="${room}" data-delta="1">＋</button>
-      </div>
-      ${cnt>0?`<input class="token-borrower-input" data-borrower-room="${room}" type="text" placeholder="借用人姓名" value="${borrower}" style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>`:''}
-      <div class="token-label">${cnt>0?`已借 ${cnt} 顆${borrower?' · '+borrower:''}`:'未借用'}</div>`;
-    grid.appendChild(card);
-  });
-
-  // 「其他」卡片
-  const otherCnt=tokens['__other_count__']||0;
-  const otherNote=tokens['__other_note__']||'';
-  const otherBorrower=tokens['__other_borrower__']||'';
-  const otherCard=document.createElement('div');
-  otherCard.className='token-card';
-  otherCard.style.minWidth='200px';
-  otherCard.innerHTML=`
-    <div class="token-room">其他</div>
-    <input id="otherNoteInput" type="text" placeholder="說明（例：前台暫借）"
-      value="${otherNote}"
-      style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;margin-bottom:4px;outline:none;"
-      onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>
-    <div class="token-controls">
-      <button class="token-btn" data-room="__other__" data-delta="-1">－</button>
-      <span class="token-count">${otherCnt}</span>
-      <button class="token-btn" data-room="__other__" data-delta="1">＋</button>
-    </div>
-    ${otherCnt>0?`<input id="otherBorrowerInput" type="text" placeholder="借用人姓名" value="${otherBorrower}" style="width:100%;padding:4px 8px;border:1px solid #ddd;border-radius:6px;font-size:12px;font-family:inherit;outline:none;" onfocus="this.style.borderColor='#185FA5'" onblur="this.style.borderColor='#ddd'"/>`:''}
-    <div class="token-label">${otherCnt>0?`已借 ${otherCnt} 顆${otherBorrower?' · '+otherBorrower:''}`:'未借用'}</div>`;
-  grid.appendChild(otherCard);
-
-  // 備註欄輸入監聽
-  const noteInput=document.getElementById('otherNoteInput');
-  if(noteInput){
-    noteInput.addEventListener('change',()=>{
-      tokens['__other_note__']=noteInput.value.trim();push();
-    });
-  }
-  const otherBorrowerInput=document.getElementById('otherBorrowerInput');
-  if(otherBorrowerInput){
-    otherBorrowerInput.addEventListener('change',()=>{
-      tokens['__other_borrower__']=otherBorrowerInput.value.trim();push();
-    });
-  }
-  // 借用人輸入監聽（各包廂）
-  grid.querySelectorAll('.token-borrower-input').forEach(input=>{
-    input.addEventListener('change',()=>{
-      const room=input.dataset.borrowerRoom;
-      const val=input.value.trim();
-      if(val)tokens[safeKey(room)+'__borrower__']=val;
-      else delete tokens[safeKey(room)+'__borrower__'];
-      push();
-    });
-  });
-
-  // Event delegation for +/- buttons
-  grid.onclick=(e)=>{
-    const btn=e.target.closest('[data-delta]');
-    if(!btn)return;
-    const room=btn.dataset.room;
-    const delta=parseInt(btn.dataset.delta);
-    adjustToken(room,delta);
-  };
-}
-function safeKey(room){return room.replace(/[.#$/[\]\s]/g,'_');}
-function adjustToken(room,delta){
-  const key=room==='__other__'?'__other_count__':safeKey(room);
-  const cur=tokens[key]||0;
-  const lent=totalLent();
-  const next=cur+delta;
-  if(next<0)return;
-  if(delta>0&&lent>=TOKEN_TOTAL){alert('已達借用上限（5 顆）！');return;}
-  if(next===0)delete tokens[key];
-  else tokens[key]=next;
-  buildTokenSection();push();
-}
-
 // 每3秒更新時段倒數標籤
-setInterval(()=>{updateSlotLabels();buildGrid();render();},3000);
-// 初始化 TOKEN 區域
-buildTokenSection();
+setInterval(()=>{if(isDragging)return;updateSlotLabels();buildGrid();render();},3000);
 
 // ── 匯出報表 ──────────────────────────────
+const fmtDT=iso=>{const t=new Date(iso);if(isNaN(t))return'';const p=n=>String(n).padStart(2,'0');return `${t.getFullYear()}-${p(t.getMonth()+1)}-${p(t.getDate())} ${p(t.getHours())}:${p(t.getMinutes())}`;};
 window.exportExcel=function(){
   const today=new Date();
   const dateStr=`${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-  const todayData={slots:SLOTS,rooms:ROOMS,stores:STORES,assignments,staff,returned,clients,assignments2,staff2,returned2,clients2,savedAt:new Date().toISOString()};
+  const todayData={slots:SLOTS,rooms:ROOMS,stores:STORES,assignments,staff,returned,clients,assignments2,staff2,returned2,clients2,loans,loans2,savedAt:new Date().toISOString()};
   if(typeof XLSX==='undefined'){alert('報表套件載入中，請稍後再試');return;}
   set(ref(db,`history/${dateStr}`),todayData).then(()=>{
     get(ref(db,'history')).then(snap=>{
       const history=snap.val()||{};
       const wb=XLSX.utils.book_new();
       const dates=Object.keys(history).sort();
-      const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','餐飲人數','Expert','Runner','CA','已歸還']];
+      const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','CA','已歸還']];
+      const loanRows=[['日期','時段','包廂','輪次','店鋪','產品名稱','出借CA','數量','SKU','歸還狀態','歸還時間']];
       dates.forEach(date=>{
         const d=history[date];if(!d)return;
         const slotList=d.slots||[],roomList=d.rooms||[],storeList=d.stores||[];
@@ -1283,13 +1348,19 @@ window.exportExcel=function(){
             const sid=asgn[k];
             const sid2=asgn2[k];
             if(!sid&&!sid2)return;
+            const pushLoans=(round,sId,sfObj,arr)=>{
+              const st=storeList.find(x=>x.id===sId);
+              (arr||[]).forEach(it=>loanRows.push([date,slot,room,round,st?st.name:'',it.name||'',it.ca||(sfObj||{}).ca||'',it.qty||1,it.sku||'',it.returned?'已歸還':'未歸還',it.returned&&it.returnedAt?fmtDT(it.returnedAt):'']));
+            };
+            if(sid)pushLoans('第一輪',sid,sfData[k],(d.loans||{})[k]);
+            if(sid2)pushLoans('第二輪',sid2,sfData2[k],(d.loans2||{})[k]);
             // 第一輪
             if(sid){
               const s=storeList.find(x=>x.id===sid);
               const sfInfo=sfData[k]||{};
               const clInfo=(d.clients||{})[k]||{};
               const retVal=retData[k]?'✓':'';
-              rows.push([dateShown?'':date,slotShown?'':slot,room,'第一輪',s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',clInfo.guests||'',sfInfo.expert||'',sfInfo.runner||'',sfInfo.ca||'',retVal]);
+              rows.push([dateShown?'':date,slotShown?'':slot,room,'第一輪',s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.ca||'',retVal]);
               dateShown=true;slotShown=true;
             }
             // 第二輪
@@ -1298,7 +1369,7 @@ window.exportExcel=function(){
               const sfInfo2=sfData2[k]||{};
               const clInfo2=(d.clients2||{})[k]||{};
               const retVal2=retData2[k]?'✓':'';
-              rows.push([dateShown?'':date,slotShown&&sid?'':slot,room,'第二輪',s2?s2.name:'',clInfo2.clientId||'',clInfo2.clientName||'',clInfo2.segment||'',clInfo2.guests||'',sfInfo2.expert||'',sfInfo2.runner||'',sfInfo2.ca||'',retVal2]);
+              rows.push([dateShown?'':date,slotShown&&sid?'':slot,room,'第二輪',s2?s2.name:'',clInfo2.clientId||'',clInfo2.clientName||'',clInfo2.segment||'',sfInfo2.ca||'',retVal2]);
               dateShown=true;slotShown=true;
             }
           });
@@ -1307,9 +1378,14 @@ window.exportExcel=function(){
       });
       if(rows.length<=1){alert('尚無資料可匯出');return;}
       const ws=XLSX.utils.aoa_to_sheet(rows);
-      ws['!cols']=[{wch:12},{wch:18},{wch:10},{wch:8},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:12},{wch:12},{wch:8}];
+      ws['!cols']=[{wch:12},{wch:18},{wch:10},{wch:8},{wch:10},{wch:12},{wch:12},{wch:10},{wch:12},{wch:8}];
       ws['!freeze']={xSplit:0,ySplit:1};
       XLSX.utils.book_append_sheet(wb,ws,'VIP Salon 全期紀錄');
+      if(loanRows.length>1){
+        const wsL=XLSX.utils.aoa_to_sheet(loanRows);
+        wsL['!cols']=[{wch:12},{wch:18},{wch:10},{wch:8},{wch:10},{wch:32},{wch:14},{wch:6},{wch:14},{wch:10},{wch:18}];
+        XLSX.utils.book_append_sheet(wb,wsL,'借出產品明細');
+      }
       XLSX.writeFile(wb,'VIP_Salon_全期報表.xlsx');
     });
   }).catch(err=>{alert('儲存失敗，請確認網路連線');console.error(err);});
