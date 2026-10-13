@@ -156,8 +156,9 @@ tbody td:last-child{border-right:none;}
       <button class="add-btn" onclick="addSlot()">＋ 新增時段</button>
     </div>
     <div class="settings-section">
-      <h3>包廂名稱設定</h3><div id="roomList"></div>
+      <h3>包廂名稱設定 <span style="font-weight:400;color:#999;font-size:11px;">（右欄選擇區域：Salon 或 Open Seating）</span></h3><div id="roomList"></div>
       <button class="add-btn" onclick="addRoom()">＋ 新增包廂</button>
+      <div id="groupColorList" style="margin-top:14px;"></div>
     </div>
     <div class="settings-section">
       <h3>店鋪設定</h3><div id="storeList"></div>
@@ -384,6 +385,8 @@ let assignments2={};  // {key: storeId} 第二輪
 let staff2={};
 let clients2={};
 let returned2={};
+let roomGroups=[];    // 與 ROOMS 同順序的「區域」名稱；空字串＝自動判斷
+let groupColors=[];   // [{name,color}] 各區域的標題顏色
 let queue=[];         // [{id, storeId, storeName, client, staff}]
 let clientList=[];    // [{id, name, segment}] 從Excel載入
 let loans={};         // {key: [{sku,name,qty}]} 第一輪借出產品
@@ -422,7 +425,7 @@ function push(){
   // queue 存成物件格式以保留 null 位置（Firebase 不保留陣列中的 null）
   const queueObj={};
   queue.forEach((item,i)=>{queueObj[i]=item||null;});
-  set(dbRef,{assignments,returned,staff,clients,assignments2,staff2,clients2,returned2,loans,loans2,queue:queueObj,slots:SLOTS,rooms:ROOMS,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);isSyncing=false;const dot=document.getElementById('syncDot');dot.className='sync-dot';const t=document.getElementById('syncStatus');t.textContent='⚠ 儲存失敗，請確認網路，或包廂／時段名稱是否含 . # $ / [ ] 等符號';t.style.color='#E24B4A';});
+  set(dbRef,{assignments,returned,staff,clients,assignments2,staff2,clients2,returned2,loans,loans2,queue:queueObj,slots:SLOTS,rooms:ROOMS,roomGroups:ROOMS.map((_,i)=>roomGroups[i]||''),groupColors:groupColors,stores:STORES}).then(()=>{setSyncStatus('connected');isSyncing=false;}).catch(e=>{console.error('push error:',e);isSyncing=false;const dot=document.getElementById('syncDot');dot.className='sync-dot';const t=document.getElementById('syncStatus');t.textContent='⚠ 儲存失敗，請確認網路，或包廂／時段名稱是否含 . # $ / [ ] 等符號';t.style.color='#E24B4A';});
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
@@ -430,6 +433,8 @@ onValue(dbRef,snap=>{
   if(d.slots?.length)SLOTS=d.slots;
   if(d.rooms?.length)ROOMS=d.rooms;
   if(d.stores?.length)STORES=d.stores;
+  { const rg=d.roomGroups||[]; roomGroups=ROOMS.map((_,i)=>String(rg[i]||'')); }
+  groupColors=Object.values(d.groupColors||{}).filter(x=>x&&x.name&&x.color);
   assignments=d.assignments||{};
   returned=d.returned||{};
   staff=d.staff||{};
@@ -456,24 +461,28 @@ onValue(dbRef,snap=>{
 window.toggleSettings=()=>{const p=document.getElementById('settingsPanel');p.classList.toggle('open');if(p.classList.contains('open'))renderPanel();};
 function renderPanel(){
   document.getElementById('slotList').innerHTML=SLOTS.map((s,i)=>`<div class="slot-row"><input value="${s}" id="slot-${i}"/><button class="del-btn" onclick="removeSlot(${i})">✕</button></div>`).join('');
-  document.getElementById('roomList').innerHTML=ROOMS.map((r,i)=>`<div class="room-row"><input value="${r}" id="room-${i}"/><button class="del-btn" onclick="removeRoom(${i})">✕</button></div>`).join('');
+  document.getElementById('roomList').innerHTML=ROOMS.map((r,i)=>`<div class="room-row"><input value="${esc(r)}" id="room-${i}" oninput="renderGroupColors()"/><select id="rgroup-${i}" onchange="renderGroupColors()" style="max-width:130px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;font-family:inherit;background:#fff;">${AREAS.map(a=>`<option value="${a}"${groupOf(i)===a?' selected':''}>${a}</option>`).join('')}</select><button class="del-btn" onclick="removeRoom(${i})">✕</button></div>`).join('');
+  renderGroupColors();
   document.getElementById('storeList').innerHTML=STORES.map((s,i)=>`<div class="store-row"><input value="${s.name}" id="store-${i}"/><button class="del-btn" onclick="removeStore(${i})">✕</button></div>`).join('');
 }
-window.addSlot=()=>{SLOTS.push('');renderPanel();document.getElementById(`slot-${SLOTS.length-1}`).focus();};
-window.removeSlot=i=>{SLOTS.splice(i,1);renderPanel();};
-window.addRoom=()=>{ROOMS.push(`包廂 ${ROOMS.length+1}`);renderPanel();document.getElementById(`room-${ROOMS.length-1}`).focus();};
-window.removeRoom=i=>{ROOMS.splice(i,1);renderPanel();};
-window.addStore=()=>{STORES.push({id:'store_'+Date.now(),name:''});renderPanel();document.getElementById(`store-${STORES.length-1}`).focus();};
-window.removeStore=i=>{STORES.splice(i,1);renderPanel();};
+window.addSlot=()=>{captureGroups();SLOTS.push('');renderPanel();document.getElementById(`slot-${SLOTS.length-1}`).focus();};
+window.removeSlot=i=>{captureGroups();SLOTS.splice(i,1);renderPanel();};
+window.addRoom=()=>{captureGroups();ROOMS.push(`包廂 ${ROOMS.length+1}`);roomGroups.push('');renderPanel();document.getElementById(`room-${ROOMS.length-1}`).focus();};
+window.removeRoom=i=>{captureGroups();ROOMS.splice(i,1);roomGroups.splice(i,1);renderPanel();};
+window.addStore=()=>{captureGroups();STORES.push({id:'store_'+Date.now(),name:''});renderPanel();document.getElementById(`store-${STORES.length-1}`).focus();};
+window.removeStore=i=>{captureGroups();STORES.splice(i,1);renderPanel();};
 window.applySettings=()=>{
   const oldSlots=[...SLOTS],oldRooms=[...ROOMS];
   // 依畫面欄位順序讀取（不先過濾空白，避免對應錯位）
   const slotVals=Array.from(document.querySelectorAll('[id^="slot-"]')).map(el=>el.value.trim());
   const roomVals=Array.from(document.querySelectorAll('[id^="room-"]')).map(el=>el.value.trim());
+  const grpVals=Array.from(document.querySelectorAll('[id^="rgroup-"]')).map(el=>el.value.trim());
   const bad=[...slotVals,...roomVals].filter(v=>/[.#$\/\[\]]/.test(v));
   if(bad.length){alert('時段／包廂名稱不可包含 . # $ / [ ] 這些符號（系統儲存限制）：\n'+bad.join('、')+'\n\n請改用其他符號，例如「-」或空白。');SLOTS=oldSlots;ROOMS=oldRooms;return;}
   SLOTS=slotVals.filter(Boolean);
   ROOMS=roomVals.filter(Boolean);
+  roomGroups=roomVals.map((v,i)=>v?(grpVals[i]||''):null).filter(x=>x!==null);
+  captureColors();
   STORES=STORES.map((s,i)=>{const el=document.getElementById(`store-${i}`);return el?{...s,name:el.value.trim()||s.name}:s;}).filter(s=>s.name);
 
   // 改名對照：依欄位順序，舊名稱 -> 新名稱。已分配的資料會跟著搬到新名稱，不會被清掉
@@ -606,37 +615,63 @@ function updateSlotLabels(){
 
 // 從包廂名稱自動偵測樓層
 function getFloorFromName(roomName){
-  const m=roomName.match(/(\d+F|B\d+)/i);
-  return m?m[1].toUpperCase():'其他';
+  // 區域只有兩種：Salon、Open Seating。未指定時，名稱開頭是 Salon 的歸 Salon，其餘歸 Open Seating
+  return /^\s*salon/i.test(roomName)?'Salon':'Open Seating';
 }
-function getFloor(i){return getFloorFromName(ROOMS[i]||'');}
+const GROUP_PALETTE=['#0F6B7A','#A23B72','#B7791F','#2F6DB5','#6B8E23','#8B3A3A','#5B4B8A','#2E7D6B'];
+const groupOf=i=>{const g=(roomGroups[i]||'').trim();return AREAS.includes(g)?g:getFloorFromName(ROOMS[i]||'');};
+function getFloor(i){return groupOf(i);}
+const AREAS=['Salon','Open Seating'];
 const FLOOR_COLOR_MAP={
-  '6F':{bg:'#534AB7',text:'#ffffff'},
-  '5F':{bg:'#3B6D11',text:'#ffffff'},
-  '4F':{bg:'#7C3E0E',text:'#ffffff'},
-  '3F':{bg:'#534AB7',text:'#ffffff'},
-  'B1':{bg:'#444441',text:'#ffffff'},
-  '其他':{bg:'#666',text:'#ffffff'},
+  'Salon':{bg:'#0F6B7A',text:'#ffffff'},
+  'Open Seating':{bg:'#A23B72',text:'#ffffff'},
 };
-function getFloorColor(f){return FLOOR_COLOR_MAP[f]||{bg:'#555',text:'#ffffff'};}
+function getFloorColor(f){
+  const c=groupColors.find(x=>x.name===f&&x.color);
+  if(c)return {bg:c.color,text:'#ffffff'};
+  if(FLOOR_COLOR_MAP[f])return FLOOR_COLOR_MAP[f];
+  // 未指定顏色的自訂區域：依名稱穩定地挑一個預設色
+  let h=0;for(const ch of String(f))h=(h*31+ch.charCodeAt(0))>>>0;
+  return {bg:GROUP_PALETTE[h%GROUP_PALETTE.length],text:'#ffffff'};
+}
+const hex6=c=>{c=String(c||'#555555');return /^#[0-9a-f]{3}$/i.test(c)?'#'+c.slice(1).split('').map(x=>x+x).join(''):c;};
+// 設定面板：依目前輸入的包廂／區域，列出各區域並提供選色
+function renderGroupColors(){
+  const el=document.getElementById('groupColorList');if(!el)return;
+  const cur={};el.querySelectorAll('input[type=color]').forEach(c=>{cur[c.dataset.g]=c.value;});
+  const rs=[...document.querySelectorAll('[id^="room-"]')],gs=[...document.querySelectorAll('[id^="rgroup-"]')];
+  const names=[];
+  rs.forEach((r,i)=>{const g=((gs[i]||{}).value||'').trim()||getFloorFromName(r.value.trim());if(!names.includes(g))names.push(g);});
+  el.innerHTML=names.length?'<div style="font-size:12px;color:#555;margin-bottom:6px;">區域標題顏色</div>'+names.map(n=>`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px;"><input type="color" data-g="${esc(n)}" value="${hex6(cur[n]||getFloorColor(n).bg)}" style="width:34px;height:26px;padding:0;border:1px solid #ddd;border-radius:4px;"/><span>${esc(n)}</span></div>`).join(''):'';
+}
+window.renderGroupColors=renderGroupColors;
+function captureColors(){
+  const el=document.getElementById('groupColorList');if(!el)return;
+  const arr=[...el.querySelectorAll('input[type=color]')].map(c=>({name:c.dataset.g,color:c.value}));
+  if(arr.length)groupColors=arr;
+}
+function captureGroups(){
+  const g=[...document.querySelectorAll('[id^="rgroup-"]')].map(e=>e.value.trim());
+  if(g.length===ROOMS.length)roomGroups=g;
+  const el=document.getElementById('groupColorList');
+  if(el){el.querySelectorAll('input[type=color]').forEach(c=>{const x=groupColors.find(y=>y.name===c.dataset.g);if(x)x.color=c.value;else groupColors.push({name:c.dataset.g,color:c.value});});}
+}
 const FLOOR_COLORS=FLOOR_COLOR_MAP;
 
 function buildGrid(){
   const tbl=document.getElementById('grid');
   // 雙行表頭：樓層 + 包廂名稱
-  const floorSpans={};
-  ROOMS.forEach((_,i)=>{const f=getFloor(i);floorSpans[f]=(floorSpans[f]||0)+1;});
+  // 連續相同區域的包廂合併成一個標題（區域可自訂，順序以包廂順序為準）
+  const runs=[];
+  ROOMS.forEach((_,i)=>{const f=getFloor(i);const l=runs[runs.length-1];if(l&&l.f===f)l.n++;else runs.push({f,n:1,i});});
   let floorRow='<tr><th rowspan="2" style="background:#2C3E6B;color:#fff;font-size:14px;font-weight:600;text-align:center;border-right:2px solid #3d5080;vertical-align:middle;padding:10px 14px;">時段 / 包廂</th>';
   let roomRow='<tr>';
-  const seenFloors=new Set();
+  runs.forEach(r=>{
+    const fc=getFloorColor(r.f);
+    const borderL=r.i>0?'border-left:2px solid #3d5080;':'';
+    floorRow+=`<th colspan="${r.n}" style="background:${fc.bg};color:${fc.text};font-size:13px;font-weight:600;padding:8px 6px;text-align:center;${borderL}letter-spacing:.5px;">${esc(r.f)}</th>`;
+  });
   ROOMS.forEach((room,i)=>{
-    const f=getFloor(i);
-    const fc=getFloorColor(f);
-    if(!seenFloors.has(f)){
-      seenFloors.add(f);
-      const borderL=i>0?'border-left:2px solid #3d5080;':'';
-      floorRow+=`<th colspan="${floorSpans[f]}" style="background:${fc.bg};color:${fc.text};font-size:13px;font-weight:600;padding:8px 6px;text-align:center;${borderL}letter-spacing:.5px;">${f}</th>`;
-    }
     const borderL=getFloor(i)!==getFloor(i-1)&&i>0?'border-left:2px solid #3d5080;':'';
     roomRow+=`<th style="background:#2C3E6B;color:#ffffff;font-size:13px;font-weight:600;padding:10px 8px;text-align:center;border-right:0.5px solid #3d5080;${borderL}">${room}</th>`;
   });
