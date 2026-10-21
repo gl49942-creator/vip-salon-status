@@ -137,7 +137,7 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
 <div class="clock" id="clock"></div>
 
 <div class="alert" id="alertBanner">
-  <div class="alert-top"><span class="alert-icon" id="alertIcon"></span><span class="alert-text" id="alertMsg"></span></div>
+  <div class="alert-top"><span class="alert-icon" id="alertIcon"></span><span class="alert-text" id="alertMsg"></span><button id="alertCopyBtn" onclick="copyAlertImage()" title="把這則提醒複製成圖片，可直接貼到聊天視窗" style="margin-left:auto;flex-shrink:0;padding:6px 12px;border-radius:8px;border:1px solid rgba(0,0,0,.25);background:rgba(255,255,255,.75);color:#333;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;">📋 複製圖片</button></div>
   <div class="alert-stores" id="alertStores"></div>
 </div>
 
@@ -812,6 +812,65 @@ window.hideMobileQueue=()=>{
   document.getElementById('mobileQueueView').style.display='none';
 };
 
+
+// ── 把提醒橫幅複製成圖片（可直接貼到聊天視窗）──
+function drawAlertCanvas(){
+  const banner=document.getElementById('alertBanner');
+  const warn30=banner.classList.contains('alert-w30');
+  const pal=warn30?{bg:'#FAEEDA',bd:'#BA7517',fg:'#633806',pbg:'#FAC775',pfg:'#633806',pbd:'#BA7517'}
+                  :{bg:'#FCEBEB',bd:'#E24B4A',fg:'#791F1F',pbg:'#F7C1C1',pfg:'#791F1F',pbd:'#E24B4A'};
+  const icon=document.getElementById('alertIcon').textContent,msg=document.getElementById('alertMsg').textContent;
+  const names=[...document.querySelectorAll('#alertStores .store-pill')].map(e=>e.textContent);
+  const S=2,W=760,M=14,PAD=24,FONT='"PingFang TC","Microsoft JhengHei","Noto Sans TC",-apple-system,"Segoe UI",sans-serif';
+  const m=document.createElement('canvas').getContext('2d');
+  const wrap=(text,maxW)=>{const out=[];let cur='';for(const ch of text){if(cur&&m.measureText(cur+ch).width>maxW){out.push(cur);cur=ch;}else cur+=ch;}if(cur)out.push(cur);return out;};
+  m.font='600 20px '+FONT;
+  const iconW=40,textW=W-M*2-PAD*2-iconW;
+  const lines=wrap(msg,textW);
+  m.font='600 15px '+FONT;
+  const innerW=W-M*2-PAD*2,pills=[];let x=0,row=0;
+  names.forEach(n=>{const w=Math.ceil(m.measureText(n).width)+30;if(x&&x+w>innerW){row++;x=0;}pills.push({n,x,row,w});x+=w+10;});
+  const rows=names.length?row+1:0;
+  const cardH=PAD*2+lines.length*28+(rows?16+rows*40-10:0);
+  const H=M+cardH+M+26;
+  const c=document.createElement('canvas');c.width=W*S;c.height=H*S;
+  const g=c.getContext('2d');g.scale(S,S);
+  const rr=(x,y,w,h,r)=>{g.beginPath();g.moveTo(x+r,y);g.arcTo(x+w,y,x+w,y+h,r);g.arcTo(x+w,y+h,x,y+h,r);g.arcTo(x,y+h,x,y,r);g.arcTo(x,y,x+w,y,r);g.closePath();};
+  g.fillStyle='#ffffff';g.fillRect(0,0,W,H);
+  rr(M,M,W-M*2,cardH,14);g.fillStyle=pal.bg;g.fill();g.lineWidth=2;g.strokeStyle=pal.bd;g.stroke();
+  g.textBaseline='middle';
+  g.font='24px '+FONT;g.fillStyle=pal.fg;g.fillText(icon,M+PAD,M+PAD+14);
+  g.font='600 20px '+FONT;
+  lines.forEach((l,i)=>g.fillText(l,M+PAD+iconW,M+PAD+14+i*28));
+  const py=M+PAD+lines.length*28+16;
+  g.font='600 15px '+FONT;
+  pills.forEach(p=>{
+    const px=M+PAD+p.x,y=py+p.row*40;
+    rr(px,y,p.w,30,15);g.fillStyle=pal.pbg;g.fill();g.lineWidth=1;g.strokeStyle=pal.pbd;g.stroke();
+    g.fillStyle=pal.pfg;g.textAlign='center';g.fillText(p.n,px+p.w/2,y+16);g.textAlign='left';
+  });
+  const now=new Date(),pad2=n=>String(n).padStart(2,'0');
+  g.font='13px '+FONT;g.fillStyle='#999999';g.textAlign='right';
+  g.fillText('VIP SALON STATUS · '+pad2(now.getHours())+':'+pad2(now.getMinutes()),W-M,M+cardH+M+8);g.textAlign='left';
+  return c;
+}
+window.copyAlertImage=async()=>{
+  const btn=document.getElementById('alertCopyBtn'),old='📋 複製圖片';
+  const say=t=>{btn.textContent=t;setTimeout(()=>{btn.textContent=old;},2200);};
+  try{
+    const canvas=drawAlertCanvas();
+    const blobP=new Promise((res,rej)=>canvas.toBlob(b=>b?res(b):rej(new Error('toBlob')),'image/png'));
+    await navigator.clipboard.write([new ClipboardItem({'image/png':blobP})]);
+    say('✓ 已複製，可直接貼上');
+  }catch(e){
+    // 瀏覽器不支援直接複製圖片時，改成下載圖片檔
+    try{
+      const canvas=drawAlertCanvas();
+      const a=document.createElement('a');a.href=canvas.toDataURL('image/png');a.download='VIP_Salon_提醒.png';document.body.appendChild(a);a.click();a.remove();
+      say('已下載圖片（此瀏覽器不支援直接複製）');
+    }catch(e2){say('複製失敗');}
+  }
+};
 
 function tick(){
   const total=Object.keys(assignments).length+Object.keys(assignments2).length;
