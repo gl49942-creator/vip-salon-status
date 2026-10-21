@@ -165,7 +165,7 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
 <!-- TOKEN 狀況 -->
 <div id="tokenDisplay" style="margin-top:24px;display:none;">
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
-    <div style="font-size:16px;font-weight:600;color:#1a1a1a;">🎫 13號備用TOKEN</div>
+    <div id="tokenViewTitle" style="font-size:16px;font-weight:600;color:#1a1a1a;">🎫 備用TOKEN</div>
     <div id="tokenViewSummary" style="display:flex;gap:10px;"></div>
   </div>
   <div id="tokenViewGrid" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
@@ -193,7 +193,7 @@ let STORES=[{id:'ksh',name:'HSM'},{id:'ksha',name:'Arena'},{id:'tch',name:'TCH'}
 let assignments={},returned={},staff={},clients={};
 let assignments2={},staff2={},clients2={},returned2={};
 let loans={},loans2={};
-let tokens={};
+let tokenLog=[];
 let roomGroups=[],groupColors=[];
 function escL(t){return String(t==null?'':t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 const unretTag=arr=>{const n=(arr||[]).filter(it=>!it.returned&&!it.sold).reduce((s,it)=>s+(parseInt(it.qty)||1),0);return n?`｜📦 未還 ${n} 件`:'';};
@@ -864,7 +864,7 @@ onValue(dbRef,snap=>{
   returned2=d.returned2||{};
   loans=d.loans||{};
   loans2=d.loans2||{};
-  tokens=d.tokens||{};
+  tokenLog=Object.values(d.tokenLog||{}).filter(x=>x&&x.no);
   const rawQueue=d.queue||[];
   queue=Array(5).fill(null);
   if(Array.isArray(rawQueue)){
@@ -876,29 +876,21 @@ onValue(dbRef,snap=>{
 });
 
 function buildTokenDisplay(){
-  const lent=Object.entries(tokens).reduce((s,[k,v])=>typeof v==='number'?s+v:s,0);
+  const lent=tokenLog.reduce((s,r)=>s+(parseInt(r.qty)||0),0);
   const display=document.getElementById('tokenDisplay');
   display.style.display=lent>0?'block':'none';
   if(lent<=0)return;
   document.getElementById('tokenViewSummary').innerHTML=`
     <div style="padding:6px 14px;border-radius:8px;background:#FAEEDA;border:1px solid #BA7517;color:#633806;text-align:center;">
       <span style="font-size:18px;font-weight:700;display:block;">${lent}</span>
-      <span style="font-size:11px;">已借出</span>
+      <span style="font-size:11px;">已借出（顆）</span>
     </div>`;
   const grid=document.getElementById('tokenViewGrid');
   grid.innerHTML='';
-  Object.entries(tokens).forEach(([k,cnt])=>{
-    if(typeof cnt!=='number'||cnt<=0)return;
+  tokenLog.forEach(r=>{
     const chip=document.createElement('div');
     chip.style.cssText='padding:8px 14px;background:#fff;border:1px solid #ddd;border-radius:8px;font-size:13px;color:#1a1a1a;';
-    if(k==='__other_count__'){
-      const note=tokens['__other_note__']||'其他',borrower=tokens['__other_borrower__']||'';
-      chip.innerHTML=`${escL(note)}：<strong>${cnt} 顆</strong>${borrower?` · ${escL(borrower)}`:''}`;
-    }else{
-      const borrower=tokens[k+'__borrower__']||'';
-      const label=ROOMS.find(r=>r===k||r.replace(/[.#$/[\]\s]/g,'_')===k)||k;
-      chip.innerHTML=`${escL(label)}：<strong>${cnt} 顆</strong>${borrower?` · ${escL(borrower)}`:''}`;
-    }
+    chip.innerHTML=`${escL(r.no)}號：<strong>${escL(r.qty)} 顆</strong>${r.borrower?` · ${escL(r.borrower)}`:''}`;
     grid.appendChild(chip);
   });
 }
