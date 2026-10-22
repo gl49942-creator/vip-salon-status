@@ -105,13 +105,13 @@ h1{font-size:28px;font-weight:700;letter-spacing:.5px;margin-bottom:4px;}
   .room-cell.cell-w15{border:1.5px solid #E24B4A;background:#fff0f0;animation:flashSlow 1.2s infinite;}
   .room-cell.cell-w30{border:1.5px solid #BA7517;background:#fff9ee;animation:flashMed 1.8s infinite;}
   .room-cell.cell-done{border:1px solid #e0e0e0;background:#f5f5f5;}
-  .room-lbl{font-size:10px;font-weight:600;color:#aaa;padding:5px 8px 0;letter-spacing:.3px;}
+  .room-lbl{font-size:15px;font-weight:700;color:#1F2D45;padding:6px 8px 0;letter-spacing:.3px;}
   .store-nm{font-size:13px;font-weight:700;padding:1px 8px;line-height:1.3;}
   .staff-lbl-m{font-size:10px;font-weight:500;padding:0 8px;color:#3C3489;line-height:1.6;display:block;}
   .cell-divider-m{border:none;border-top:0.5px solid rgba(0,0,0,.15);margin:3px 8px;}
   .client-lbl-m{font-size:10px;font-weight:500;padding:0 8px;color:#3C3489;display:block;line-height:1.6;}
   .done-lbl-m{font-size:10px;font-weight:500;padding:2px 8px 5px;color:#888;}
-  .room-empty{display:flex;align-items:center;justify-content:center;height:70px;color:#ddd;font-size:11px;}
+  .room-empty{display:flex;align-items:center;justify-content:center;height:70px;color:#9aa3b5;font-size:15px;font-weight:700;}
 }
 </style>
 </head>
@@ -539,7 +539,7 @@ function buildTable(){
   });
   ROOMS.forEach((room,i)=>{
     const borderL=getFloor(i)!==getFloor(i-1)&&i>0?`border-left:2px solid #c8cfe0;`:'';
-    roomRow+=`<th style="background:#2C3E6B;color:#ffffff;font-size:13px;font-weight:600;padding:10px 8px;text-align:center;border-right:0.5px solid #3d5080;${borderL}">${room}</th>`;
+    roomRow+=`<th style="background:#2C3E6B;color:#ffffff;font-size:19px;font-weight:700;letter-spacing:.5px;padding:12px 8px;text-align:center;border-right:0.5px solid #3d5080;${borderL}">${room}</th>`;
   });
   floorRow+='</tr>';
   roomRow+='</tr>';
@@ -695,7 +695,7 @@ function buildCards(){
             const {sx,cx,cellSty,nameSty,infoTxt,retTxt}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet,loans[k]);
             const cl1=clients[k]||{};
             const gLbl='';
-            html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.7;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}${gLbl}</span>${infoTxt}${retTxt}</div>`;
+            html+=`<div class="${rCls}" style="${cellSty}"><span class="room-lbl" style="${nameSty}opacity:.9;">${room}</span><span class="store-nm" style="${nameSty}">${sx?sx.name:''}${gLbl}</span>${infoTxt}${retTxt}</div>`;
           } else if(sid&&sid2){
             // 兩輪
             const rst=roomStatus(slot,k);
@@ -712,7 +712,7 @@ function buildCards(){
             const {sx:s1x}=mCellContent(sid,staff[k]||{},clients[k]||{},isRet);
             const {infoTxt:info2,retTxt:ret2}=mCellContent(sid2,staff2[k]||{},clients2[k]||{},isRet2,loans2[k]);
             html+=`<div class="${rCls}" style="${border2}border-radius:8px;overflow:hidden;background:#fff;">
-              <span class="room-lbl" style="padding:4px 8px 0;display:block;color:#aaa;opacity:.7;font-size:10px;">${room}</span>
+              <span class="room-lbl" style="padding:6px 8px 0;display:block;color:#1F2D45;opacity:1;font-size:15px;font-weight:700;">${room}</span>
               <div style="font-size:9px;font-weight:600;padding:3px 8px;background:#e8e8e8;color:#777;display:flex;justify-content:space-between;cursor:pointer;" onclick="toggleRoundV('${uid2}',1)">
                 <span>第一輪 · ${s1x?s1x.name:''} · ✓ 已歸還${unretTag(loans[k])}</span><span id="vh1-${uid2}" class="chv">▾</span>
               </div>
