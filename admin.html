@@ -328,13 +328,6 @@ tbody td:last-child{border-right:none;}
         <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">CA</label>
         <input id="caInput" type="text" placeholder="輸入 CA 姓名" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;font-family:inherit;outline:none;"/>
       </div>
-      <div style="margin-bottom:8px;">
-        <label style="font-size:12px;font-weight:500;color:#444;display:block;margin-bottom:4px;">借用浴袍</label>
-        <div style="display:flex;gap:8px;">
-          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;cursor:pointer;"><input type="radio" name="robeInput" value="0" checked/>沒有</label>
-          <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;cursor:pointer;"><input type="radio" name="robeInput" value="1"/>有</label>
-        </div>
-      </div>
     </div>
 
     <div class="modal-btns">
@@ -788,7 +781,6 @@ function cellInfoHTML(sid,sfObj,clObj,isRet,k,slot,isR2=false){
   if(clObj.segment)cParts.push(`<span class="client-badge">Seg: ${esc(clObj.segment)}</span>`);
   const pParts=[];
   if(sfObj.ca)pParts.push(`<span class="staff-badge">CA: ${esc(sfObj.ca)}</span>`);
-  if(sfObj.robe)pParts.push(`<span class="staff-badge">🛁 浴袍：有</span>`);
   const hasC=cParts.length>0,hasP=pParts.length>0;
   const infoLabel=(hasC||hasP)?`${cParts.join('')}${pParts.join('')}`:'';
   const loanArr=(isR2?loans2:loans)[k]||[];
@@ -936,7 +928,6 @@ window.openInfoModal2=(k,storeName,slot,e)=>{
   document.getElementById('clientIdInput').value=cl.clientId||'';
   document.getElementById('clientNameInput').value=cl.clientName||'';
   document.getElementById('caInput').value=sf.ca||'';
-  setRobeRadio(sf.robe);
   const segSel=document.getElementById('clientSegInput');
   segSel.value=cl.segment||'';
   if(cl.segment&&segSel.value!==cl.segment){
@@ -960,7 +951,6 @@ window.openInfoModal=(k,storeName,slot,e)=>{
   document.getElementById('clientIdInput').value=cl.clientId||'';
   document.getElementById('clientNameInput').value=cl.clientName||'';
   document.getElementById('caInput').value=sf.ca||'';
-  setRobeRadio(sf.robe);
   const segSel=document.getElementById('clientSegInput');
   segSel.value=cl.segment||'';
   if(cl.segment&&segSel.value!==cl.segment){
@@ -987,7 +977,6 @@ function updateSegmentDropdown(segments){
   });
   if(cur)sel.value=cur;
 }
-const setRobeRadio=v=>{const r=document.querySelector(`input[name="robeInput"][value="${v?1:0}"]`);if(r)r.checked=true;};
 window.closeInfoModal=()=>{document.getElementById('infoModal').classList.remove('open');pendingInfoKey=null;};
 window.confirmInfo=()=>{
   if(!pendingInfoKey)return;
@@ -997,13 +986,12 @@ window.confirmInfo=()=>{
   const clientName=document.getElementById('clientNameInput').value.trim();
   const segment=document.getElementById('clientSegInput').value.trim();
   const ca=document.getElementById('caInput').value.trim();
-  const robe=(document.querySelector('input[name="robeInput"]:checked')||{}).value==='1';   // 預設：沒有
   if(isR2){
     if(clientId||clientName||segment){clients2[k]={clientId,clientName,segment};}else{delete clients2[k];}
-    if(ca||robe){staff2[k]=robe?{ca,robe:true}:{ca};}else{delete staff2[k];}
+    if(ca){staff2[k]={ca};}else{delete staff2[k];}
   }else{
     if(clientId||clientName||segment){clients[k]={clientId,clientName,segment};}else{delete clients[k];}
-    if(ca||robe){staff[k]=robe?{ca,robe:true}:{ca};}else{delete staff[k];}
+    if(ca){staff[k]={ca};}else{delete staff[k];}
   }
   closeInfoModal();render();push();
 };
@@ -1447,7 +1435,7 @@ window.exportExcel=function(){
       const history=snap.val()||{};
       const wb=XLSX.utils.book_new();
       const dates=Object.keys(history).sort();
-      const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','CA','浴袍','已歸還']];
+      const rows=[['日期','時段','包廂','輪次','店鋪','客人ID','客人姓名','Segment','CA','已歸還']];
       const loanRows=[['日期','時段','包廂','輪次','店鋪','產品名稱','出借CA','數量','SKU','狀態','歸還／售出時間']];
       dates.forEach(date=>{
         const d=history[date];if(!d)return;
@@ -1474,7 +1462,7 @@ window.exportExcel=function(){
               const sfInfo=sfData[k]||{};
               const clInfo=(d.clients||{})[k]||{};
               const retVal=retData[k]?'✓':'';
-              rows.push([dateShown?'':date,slotShown?'':slot,room,'第一輪',s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.ca||'',sfInfo.robe?'有':'沒有',retVal]);
+              rows.push([dateShown?'':date,slotShown?'':slot,room,'第一輪',s?s.name:'',clInfo.clientId||'',clInfo.clientName||'',clInfo.segment||'',sfInfo.ca||'',retVal]);
               dateShown=true;slotShown=true;
             }
             // 第二輪
@@ -1483,7 +1471,7 @@ window.exportExcel=function(){
               const sfInfo2=sfData2[k]||{};
               const clInfo2=(d.clients2||{})[k]||{};
               const retVal2=retData2[k]?'✓':'';
-              rows.push([dateShown?'':date,slotShown&&sid?'':slot,room,'第二輪',s2?s2.name:'',clInfo2.clientId||'',clInfo2.clientName||'',clInfo2.segment||'',sfInfo2.ca||'',sfInfo2.robe?'有':'沒有',retVal2]);
+              rows.push([dateShown?'':date,slotShown&&sid?'':slot,room,'第二輪',s2?s2.name:'',clInfo2.clientId||'',clInfo2.clientName||'',clInfo2.segment||'',sfInfo2.ca||'',retVal2]);
               dateShown=true;slotShown=true;
             }
           });
