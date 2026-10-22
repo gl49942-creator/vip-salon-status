@@ -70,6 +70,9 @@ tbody td:last-child{border-right:none;}
 @keyframes flashSlow{0%,100%{opacity:1;}50%{opacity:.55;}}
 @keyframes flashMed{0%,100%{opacity:1;}50%{opacity:.65;}}
 .cell{min-height:130px;border-radius:10px;border:1.5px dashed #ddd;display:flex;align-items:center;justify-content:center;font-size:13px;color:#bbb;transition:background 0.15s;position:relative;}
+.cell-add{width:100%;height:100%;min-height:128px;border:none;background:transparent;color:#b5bfd3;font-size:30px;font-weight:300;cursor:pointer;font-family:inherit;border-radius:10px;}
+.cell-add:hover,.cell-add:active{background:#eef3fb;color:#185FA5;}
+.pick-sel{outline:3px solid #185FA5 !important;outline-offset:2px;box-shadow:0 0 0 5px rgba(24,95,165,.22) !important;}
 .cell.drag-over{background:#e8f0fb;border-color:#378add;border-style:solid;}
 .cell.filled{border-style:solid;border-color:transparent;}
 .assigned{padding:9px 10px;border-radius:8px;width:100%;cursor:grab;position:relative;display:flex;flex-direction:column;gap:3px;}
@@ -821,7 +824,11 @@ function render(){
     const sid=assignments[k];
     const sid2=assignments2[k];
 
-    if(!sid&&!sid2){cell.classList.remove('filled');cell.innerHTML='';return;}
+    if(!sid&&!sid2){
+      cell.classList.remove('filled');
+      cell.innerHTML=`<button class="cell-add" title="加入店鋪" onclick="openCellAdd('${k.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}',event)">＋</button>`;
+      return;
+    }
 
     cell.classList.add('filled');
     const isRet=returned[k]||false;
@@ -890,6 +897,32 @@ window.toggleRound=(uid,n)=>{
   det.style.maxHeight=isOpen?'0px':'500px';
   hdr.classList.toggle('open',!isOpen);
   if(isOpen)openRounds.delete(uid+':'+n);else openRounds.add(uid+':'+n);
+};
+
+// 空格直接加入店鋪（點格子中的 ＋）
+window.openCellAdd=(k,e)=>{
+  if(e)e.stopPropagation();
+  if(assignments[k])return;
+  const[room,slot]=k.split('||');
+  document.getElementById('cellAddModal')?.remove();
+  const modal=document.createElement('div');
+  modal.id='cellAddModal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:2000;';
+  modal.onclick=ev=>{if(ev.target===modal)modal.remove();};
+  modal.innerHTML=`<div style="background:#fff;border-radius:14px;padding:20px;width:320px;max-height:80vh;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.18);">
+    <h3 style="font-size:16px;font-weight:600;margin-bottom:4px;">加入店鋪</h3>
+    <p style="font-size:12px;color:#aaa;margin-bottom:14px;">${esc(room)}　${esc(slot)}</p>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      ${STORES.map(s=>{const c=color(s.id);return `<button data-sid="${esc(s.id)}" style="padding:11px 14px;border-radius:8px;border:1.5px solid ${c.border};background:${c.bg};color:${c.text};text-align:left;cursor:pointer;font-size:14px;font-family:inherit;font-weight:500;">${esc(s.name)}</button>`;}).join('')}
+    </div>
+    <button id="cellAddCancel" style="margin-top:12px;width:100%;padding:9px;border-radius:8px;border:1px solid #ddd;background:#f5f5f5;cursor:pointer;font-family:inherit;">取消</button>
+  </div>`;
+  document.body.appendChild(modal);
+  modal.querySelectorAll('button[data-sid]').forEach(b=>b.onclick=()=>{
+    if(!assignments[k]){assignments[k]=b.dataset.sid;render();push();}
+    modal.remove();
+  });
+  document.getElementById('cellAddCancel').onclick=()=>modal.remove();
 };
 
 // 第二輪 store 選擇彈窗
@@ -1419,6 +1452,92 @@ window.removeTokenRecord=i=>{if(!tokenLog[i])return;tokenLog.splice(i,1);buildTo
 ['tkNo','tkQty','tkWho'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')addTokenRecord();}));
 
 function buildAll(){buildLegend();buildGrid();render();buildQueuePanel();buildTokenSection();}
+
+// ── 點選搬移（平板用，不能拖曳時）──────────────────────────
+// 點一下「店鋪標籤 / 包廂內的店鋪卡片 / 候位卡片」選取，再點目標格子或候位格就搬過去；
+// 內部沿用拖曳的放下邏輯，所以結果（對調、搬移、不覆蓋）和拖曳完全一樣。
+let pick=null;
+const pickBar=document.createElement('div');
+pickBar.id='pickBar';
+pickBar.style.cssText='display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:3000;background:#1F2D45;color:#fff;padding:10px 14px;border-radius:12px;font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.3);align-items:center;gap:12px;max-width:92vw;';
+document.body.appendChild(pickBar);
+const pickLabel=()=>{
+  if(!pick)return'';
+  if(pick.type==='chip')return (STORES.find(x=>x.id===pick.id)||{}).name||'';
+  if(pick.type==='cell'){const sid=assignments[pick.k];return ((STORES.find(x=>x.id===sid)||{}).name||'')+'（'+pick.k.split('||')[0]+'）';}
+  if(pick.type==='queue'){const it=queue[pick.idx];return it?('候位 '+(it.storeName||'')):'';}
+  return'';
+};
+function setPick(v){
+  pick=v;
+  if(!pick){pickBar.style.display='none';}
+  else{
+    pickBar.innerHTML=`<span>已選取 <b>${esc(pickLabel())}</b>，請點選目標${pick.type==='queue'?'包廂或候位格':'格子'}</span><button id="pickCancel" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-size:13px;font-family:inherit;cursor:pointer;">取消</button>`;
+    pickBar.style.display='flex';
+    document.getElementById('pickCancel').onclick=()=>setPick(null);
+  }
+  markPick();
+}
+function markPick(){
+  document.querySelectorAll('.pick-sel').forEach(e=>e.classList.remove('pick-sel'));
+  if(!pick)return;
+  if(pick.type==='chip'){[...document.querySelectorAll('#legend .store-chip')].filter(c=>c.textContent===((STORES.find(x=>x.id===pick.id)||{}).name)).forEach(c=>c.classList.add('pick-sel'));}
+  else if(pick.type==='cell'){const[r,sl]=pick.k.split('||');const c=document.querySelector(`.cell[data-room="${encodeURIComponent(r)}"][data-slot="${encodeURIComponent(sl)}"]`);if(c)c.classList.add('pick-sel');}
+  else if(pick.type==='queue'){const q=document.querySelector(`.queue-slot[data-slot-idx="${pick.idx}"]`);if(q)q.classList.add('pick-sel');}
+}
+setInterval(markPick,400);
+function fireDrop(el,qIdx){
+  const ev=new Event('drop',{bubbles:true,cancelable:true});
+  ev.dataTransfer={getData:n=>(n==='queueIdx'&&qIdx!=null)?String(qIdx):'',setData(){},effectAllowed:'move'};
+  el.dispatchEvent(ev);
+}
+document.addEventListener('click',e=>{
+  const t=e.target;
+  let inter=t.closest('button,input,select,textarea,a,.loan-line,.round-hdr-a,.queue-del');
+  if(inter&&inter.classList.contains('cell-add')&&pick)inter=null;   // 選取搬移中，點 ＋ 視為點格子
+  const chip=t.closest('#legend .store-chip');
+  const cellEl=t.closest('.cell');
+  const qSlot=t.closest('.queue-slot');
+
+  // 已有選取 → 這一下是「放下」
+  if(pick){
+    if(chip){e.preventDefault();e.stopPropagation();
+      if(pick.type==='chip'&&STORES.find(x=>x.id===pick.id)?.name===chip.textContent){setPick(null);return;}
+      const st=STORES.find(x=>x.name===chip.textContent);setPick(st?{type:'chip',id:st.id}:null);return;}
+    if(inter&&!cellEl&&!qSlot)return;
+    if(inter)return;                       // 按到格子裡的按鈕（✏️、✓、✕…）照常處理
+    if(cellEl){
+      e.preventDefault();e.stopPropagation();
+      const k=key(decodeURIComponent(cellEl.dataset.room),decodeURIComponent(cellEl.dataset.slot));
+      if(pick.type==='cell'&&pick.k===k){setPick(null);return;}
+      if(pick.type==='chip'){dragStore=pick.id;dragFrom=null;dragQueueIdx=null;fireDrop(cellEl,null);}
+      else if(pick.type==='cell'){dragStore=assignments[pick.k];dragFrom=pick.k;dragQueueIdx=null;fireDrop(cellEl,null);}
+      else{dragStore=null;dragFrom=null;dragQueueIdx=pick.idx;fireDrop(cellEl,pick.idx);}
+      dragStore=null;dragFrom=null;dragQueueIdx=null;setPick(null);return;
+    }
+    if(qSlot){
+      e.preventDefault();e.stopPropagation();
+      const idx=parseInt(qSlot.dataset.slotIdx);
+      if(pick.type==='queue'&&pick.idx===idx){setPick(null);return;}
+      if(pick.type==='cell'){dragStore=assignments[pick.k];dragFrom=pick.k;dragQueueIdx=null;fireDrop(qSlot,null);}
+      else if(pick.type==='queue'){dragQueueIdx=pick.idx;fireDrop(qSlot,pick.idx);}
+      dragStore=null;dragFrom=null;dragQueueIdx=null;setPick(null);return;
+    }
+    return;
+  }
+
+  // 尚未選取 → 這一下是「選取」
+  if(chip){const st=STORES.find(x=>x.name===chip.textContent);if(st)setPick({type:'chip',id:st.id});return;}
+  if(inter)return;
+  const asg=t.closest('.cell .assigned');
+  if(asg&&cellEl&&asg.getAttribute('draggable')==='true'){
+    const k=key(decodeURIComponent(cellEl.dataset.room),decodeURIComponent(cellEl.dataset.slot));
+    if(assignments[k]&&!returned[k]&&!assignments2[k])setPick({type:'cell',k});   // 與拖曳相同：只有單輪、未歸還的格子可搬
+    return;
+  }
+  if(qSlot&&qSlot.classList.contains('filled')){setPick({type:'queue',idx:parseInt(qSlot.dataset.slotIdx)});}
+},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pick)setPick(null);});
 
 // 每3秒更新時段倒數標籤
 setInterval(()=>{if(isDragging)return;updateSlotLabels();buildGrid();render();},3000);
