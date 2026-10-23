@@ -450,7 +450,74 @@ function setSyncStatus(s){
   else if(s==='saving'){dot.className='sync-dot saving';txt.textContent='儲存中...';}
   else{dot.className='sync-dot';txt.textContent='連線中...';}
 }
+// ── 復原上一步 ─────────────────────────────────────────
+// 只記「包廂／候位／借出／TOKEN」等現場資料；設定（包廂、時段、店鋪）不納入。
+// 每次 push() 之前，若資料有變，就把「變動前」的樣子存起來；按復原就還原並同步。
+// 如果別台電腦也改了資料（遠端變動），為了不蓋掉別人的修改，會清空復原紀錄。
+const UNDO_MAX=30;
+let undoStack=[],undoLast=null,undoSettingsSig=null,undoing=false;
+const canon=v=>{
+  if(Array.isArray(v)){const a=v.map(canon).filter(x=>x!==undefined);return a.length?a:undefined;}
+  if(v&&typeof v==='object'){const o={};Object.keys(v).sort().forEach(k=>{const c=canon(v[k]);if(c!==undefined)o[k]=c;});return Object.keys(o).length?o:undefined;}
+  if(v===null||v===undefined||v==='')return undefined;
+  return v;
+};
+const opState=()=>({assignments,returned,staff,clients,assignments2,staff2,clients2,returned2,loans,loans2,tokenLog,queue:(queue||[]).map(x=>x||null)});
+const opSnap=()=>JSON.stringify(canon(opState())||{});
+const settingsSig=()=>JSON.stringify([SLOTS,ROOMS,STORES]);
+function undoTrack(){
+  if(undoing)return;
+  const now=opSnap(),sig=settingsSig();
+  if(undoLast===null||sig!==undoSettingsSig){undoStack=[];}      // 第一次、或設定被改過：不跨設定復原
+  else if(now!==undoLast){undoStack.push(undoLast);if(undoStack.length>UNDO_MAX)undoStack.shift();}
+  undoLast=now;undoSettingsSig=sig;
+  undoBtnUpdate();
+}
+function undoSync(){   // 從 Firebase 讀回資料時呼叫
+  const now=opSnap(),sig=settingsSig();
+  if(undoLast!==null&&(now!==undoLast||sig!==undoSettingsSig))undoStack=[];   // 有別人改了資料，不再允許復原
+  undoLast=now;undoSettingsSig=sig;
+  undoBtnUpdate();
+}
+function undoBtnUpdate(){
+  const b=document.getElementById('undoBtn');if(!b)return;
+  b.disabled=!undoStack.length;
+  b.textContent=undoStack.length?`↩ 復原上一步（${undoStack.length}）`:'↩ 復原上一步';
+}
+window.undoLastStep=()=>{
+  if(!undoStack.length)return;
+  const snap=JSON.parse(undoStack.pop());
+  assignments=snap.assignments||{};returned=snap.returned||{};staff=snap.staff||{};clients=snap.clients||{};
+  assignments2=snap.assignments2||{};staff2=snap.staff2||{};clients2=snap.clients2||{};returned2=snap.returned2||{};
+  loans=snap.loans||{};loans2=snap.loans2||{};tokenLog=snap.tokenLog||[];
+  queue=Array(QUEUE_SLOTS).fill(null);
+  (snap.queue||[]).forEach((it,i)=>{if(i<QUEUE_SLOTS&&it)queue[i]=it;});
+  undoing=true;undoLast=opSnap();undoSettingsSig=settingsSig();
+  buildAll();push();
+  undoing=false;undoBtnUpdate();
+  const b=document.getElementById('undoBtn');if(b){const t=b.textContent;b.textContent='✓ 已復原';setTimeout(undoBtnUpdate,900);}
+};
+document.addEventListener('keydown',e=>{
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&e.key.toLowerCase()==='z'){
+    const t=document.activeElement;
+    if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;   // 輸入文字時保留瀏覽器原本的復原
+    e.preventDefault();undoLastStep();
+  }
+});
+{
+  const b=document.createElement('button');
+  b.id='undoBtn';b.disabled=true;b.textContent='↩ 復原上一步';
+  b.title='還原最近一次的修改（包廂、候位、借出、TOKEN）';
+  b.style.cssText='position:fixed;left:16px;bottom:16px;z-index:2500;padding:11px 16px;border-radius:24px;border:1.5px solid #1F2D45;background:#fff;color:#1F2D45;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 3px 12px rgba(0,0,0,.18);';
+  b.onclick=()=>undoLastStep();
+  document.body.appendChild(b);
+  const st=document.createElement('style');
+  st.textContent='#undoBtn:disabled{opacity:.45;cursor:default;box-shadow:none;}';
+  document.head.appendChild(st);
+}
+
 function push(){
+  undoTrack();
   isSyncing=true;setSyncStatus('saving');
   // queue 存成物件格式以保留 null 位置（Firebase 不保留陣列中的 null）
   const queueObj={};
@@ -459,7 +526,7 @@ function push(){
 }
 onValue(dbRef,snap=>{
   if(isSyncing)return;
-  const d=snap.val();if(!d){setSyncStatus('connected');return;}
+  const d=snap.val();if(!d){undoSync();setSyncStatus('connected');return;}
   if(d.slots?.length)SLOTS=d.slots;
   if(d.rooms?.length)ROOMS=d.rooms;
   if(d.stores?.length)STORES=d.stores;
@@ -485,6 +552,7 @@ onValue(dbRef,snap=>{
     // Firebase 可能把陣列轉成物件 {0:..., 2:...}
     Object.entries(rawQueue).forEach(([k,v])=>{const i=parseInt(k);if(i<QUEUE_SLOTS&&v)queue[i]=v;});
   }
+  undoSync();
   setSyncStatus('connected');buildAll();buildQueuePanel();
 });
 
