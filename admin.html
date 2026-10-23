@@ -919,8 +919,11 @@ window.openCellAdd=(k,e)=>{
   </div>`;
   document.body.appendChild(modal);
   modal.querySelectorAll('button[data-sid]').forEach(b=>b.onclick=()=>{
-    if(!assignments[k]){assignments[k]=b.dataset.sid;render();push();}
+    let added=false;
+    if(!assignments[k]){assignments[k]=b.dataset.sid;added=true;render();push();}
     modal.remove();
+    // 加入後直接開啟「填寫包廂資訊」，不想填就關掉，店鋪仍留在格子裡
+    if(added){const st=STORES.find(x=>x.id===b.dataset.sid);openInfoModal(k,st?st.name:'',slot);}
   });
   document.getElementById('cellAddCancel').onclick=()=>modal.remove();
 };
