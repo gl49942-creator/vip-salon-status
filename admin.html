@@ -1358,6 +1358,18 @@ function buildQueuePanel(){
           dragFrom=null;dragStore=null;
           buildQueuePanel();render();push();
         }
+        return;
+      }
+
+      // 從上方店鋪標籤拖來：直接排進這個候位順位（只能放進空位，不會蓋掉別人）
+      if(dragStore){
+        if(queue[idx]){alert('順位 '+(idx+1)+' 已有候位，請拖到空的順位');return;}
+        const s=STORES.find(x=>x.id===dragStore);
+        if(s){
+          queue[idx]={storeId:s.id,storeName:s.name,client:{},staff:{},loans:[]};
+          dragStore=null;dragFrom=null;
+          buildQueuePanel();push();
+        }
       }
     });
     list.appendChild(slot);
@@ -1472,7 +1484,7 @@ function setPick(v){
   pick=v;
   if(!pick){pickBar.style.display='none';}
   else{
-    pickBar.innerHTML=`<span>已選取 <b>${esc(pickLabel())}</b>，請點選目標${pick.type==='queue'?'包廂或候位格':'格子'}</span><button id="pickCancel" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-size:13px;font-family:inherit;cursor:pointer;">取消</button>`;
+    pickBar.innerHTML=`<span>已選取 <b>${esc(pickLabel())}</b>，請點選目標${pick.type==='queue'?'包廂或候位格':'格子或候位格'}</span><button id="pickCancel" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.4);background:transparent;color:#fff;font-size:13px;font-family:inherit;cursor:pointer;">取消</button>`;
     pickBar.style.display='flex';
     document.getElementById('pickCancel').onclick=()=>setPick(null);
   }
@@ -1519,7 +1531,8 @@ document.addEventListener('click',e=>{
       e.preventDefault();e.stopPropagation();
       const idx=parseInt(qSlot.dataset.slotIdx);
       if(pick.type==='queue'&&pick.idx===idx){setPick(null);return;}
-      if(pick.type==='cell'){dragStore=assignments[pick.k];dragFrom=pick.k;dragQueueIdx=null;fireDrop(qSlot,null);}
+      if(pick.type==='chip'){dragStore=pick.id;dragFrom=null;dragQueueIdx=null;fireDrop(qSlot,null);}
+      else if(pick.type==='cell'){dragStore=assignments[pick.k];dragFrom=pick.k;dragQueueIdx=null;fireDrop(qSlot,null);}
       else if(pick.type==='queue'){dragQueueIdx=pick.idx;fireDrop(qSlot,pick.idx);}
       dragStore=null;dragFrom=null;dragQueueIdx=null;setPick(null);return;
     }
